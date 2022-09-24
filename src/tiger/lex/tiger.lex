@@ -88,25 +88,84 @@
 }
 
 <STR>{
+  /* find \", treat as a real " */
+  [\\][\"] {
+    setMatched(matched().substr(0, matched().length() - 2) + '\"');
+    more();
+    adjustX(1);
+  }
+  /* find \\ */
+  "\\\\" {
+    setMatched(matched().substr(0, matched().length() - 2) + '\\');
+    more();
+    adjustX(1);
+  }
+  /* find a " */
   \" {
     redo(1);
     adjustStr();
     begin(StartCondition__::EAT1);
     return Parser::STRING;
   }
-  ("\")([0-9]{3}) {
-    std::cout<<"qwq"<<std::endl;
-    char tmp = (char)std::strtol(matched().substr(matched().length() - 3).c_str(), nullptr, 8);
-    setMatched(matched().substr(0, matched().length() - 4) + tmp);
+  /* \xxx style's char*/
+  \\([0-9]{3}) {
+    //std::cout<<"qwq"<<std::endl;
+    //std::cout<<matched()<<std::endl;
+    int tmp = (int)std::strtol(matched().substr(matched().length() - 3, 3).c_str(), nullptr, 10);
+    //std::cout<<matched() << " " << tmp<<std::endl;
+    setMatched(matched().substr(0, matched().length() - 4) + (char)tmp);
     more();
     adjustX(3);
   }
-  "\\n" {
-    setMatched(matched().substr(0, matched().length() - 2) + "\x0a");
+  \\\^[A-Z] {
+    char lastC = matched().substr(matched().length() - 1, 1)[0];
+    int bios = lastC - 'A' + 1;
+    setMatched(matched().substr(0, matched().length() - 3) + (char)bios);
+    more();
+    adjustX(2);
+  }
+  /* start ignore */
+  \\[ \t\n] {
+    storeString(matched().substr(0, matched().length() - 2));
+    begin(StartCondition__::IGNORE);
+    adjustX(2);
+  }
+  "\\a" {
+    setMatched(matched().substr(0, matched().length() - 2) + '\a');
     more();
     adjustX(1);
   }
-  \\.|. {more();}
+  "\\b" {
+    setMatched(matched().substr(0, matched().length() - 2) + '\b');
+    more();
+    adjustX(1);
+  }
+  "\\f" {
+    setMatched(matched().substr(0, matched().length() - 2) + '\f');
+    more();
+    adjustX(1);
+  }
+  "\\n" {
+    setMatched(matched().substr(0, matched().length() - 2) + '\n');
+    more();
+    adjustX(1);
+  }
+  "\\r" {
+    setMatched(matched().substr(0, matched().length() - 2) + '\r');
+    more();
+    adjustX(1);
+  }
+  "\\t" {
+    setMatched(matched().substr(0, matched().length() - 2) + '\t');
+    more();
+    adjustX(1);
+  }
+  "\\v" {
+    setMatched(matched().substr(0, matched().length() - 2) + '\v');
+    more();
+    adjustX(1);
+  }
+  . {more();}
 
 }
 
@@ -119,7 +178,13 @@
 }
 
 <IGNORE>{
-
+  \\ {
+    adjustX(1);
+    setMatched(recoverString());
+    begin(StartCondition__::STR);
+    more();
+  }
+  .|[ \t\n] {more();adjustX(1);}
 }
 
 

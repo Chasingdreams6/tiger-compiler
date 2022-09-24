@@ -49,6 +49,7 @@ public:
 private:
   int comment_level_;
   std::string string_buf_;
+  std::string store_tmp;
   int char_pos_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
   std::stack<StartCondition__> d_scStack;
@@ -67,9 +68,15 @@ private:
   void adjust();
   void adjustStr();
   void adjustX(int );
+  void storeString(std::string);
+  std::string recoverString();
 };
 
 inline int Scanner::lex() { return lex__(); }
+
+inline void Scanner::storeString(std::string x) {store_tmp = x;}
+
+inline std::string Scanner::recoverString() {return store_tmp;}
 
 inline void Scanner::push(StartCondition__ next) {
   //errormsg_->Error(errormsg_->tok_pos_, "push");
