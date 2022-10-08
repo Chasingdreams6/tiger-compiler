@@ -85,9 +85,6 @@
   [ \t]+ {adjust();}
   \n {adjust();}
   . {adjust();}
-  <<EOF>> {
-    errormsg_->Error(errormsg_->tok_pos_, "unclosed comment");
-  }
 }
 
 <STR>{
@@ -112,10 +109,10 @@
   }
   /* \xxx style's char*/
   \\([0-9]{3}) {
+    //std::cout<<"qwq"<<std::endl;
+    //std::cout<<matched()<<std::endl;
     int tmp = (int)std::strtol(matched().substr(matched().length() - 3, 3).c_str(), nullptr, 10);
-    if (tmp > 127) {
-      errormsg_->Error(errormsg_->tok_pos_, "\\xxx style out of range");
-    }
+    //std::cout<<matched() << " " << tmp<<std::endl;
     setMatched(matched().substr(0, matched().length() - 4) + (char)tmp);
     more();
     adjustX(3);
@@ -134,13 +131,19 @@
     adjustX(2);
   }
   "\\a" {
-    errormsg_->Error(errormsg_->tok_pos_, "illegal input \\a");
+    setMatched(matched().substr(0, matched().length() - 2) + '\a');
+    more();
+    adjustX(1);
   }
   "\\b" {
-    errormsg_->Error(errormsg_->tok_pos_, "illegal input \\b");
+    setMatched(matched().substr(0, matched().length() - 2) + '\b');
+    more();
+    adjustX(1);
   }
   "\\f" {
-    errormsg_->Error(errormsg_->tok_pos_, "illegal input \\f");
+    setMatched(matched().substr(0, matched().length() - 2) + '\f');
+    more();
+    adjustX(1);
   }
   "\\n" {
     setMatched(matched().substr(0, matched().length() - 2) + '\n');
@@ -148,7 +151,9 @@
     adjustX(1);
   }
   "\\r" {
-    errormsg_->Error(errormsg_->tok_pos_, "illegal input \\r");
+    setMatched(matched().substr(0, matched().length() - 2) + '\r');
+    more();
+    adjustX(1);
   }
   "\\t" {
     setMatched(matched().substr(0, matched().length() - 2) + '\t');
@@ -156,26 +161,20 @@
     adjustX(1);
   }
   "\\v" {
-    errormsg_->Error(errormsg_->tok_pos_, "illegal input \\v");
+    setMatched(matched().substr(0, matched().length() - 2) + '\v');
+    more();
+    adjustX(1);
   }
   . {more();}
-  <<EOF>> {
-    errormsg_->Error(errormsg_->tok_pos_, "unclosed STR");
-  }
+
 }
 
 <EAT1>{
   . {adjust(); begin(StartCondition__::INITIAL);}
-  <<EOF>> {
-    errormsg_->Error(errormsg_->tok_pos_, "unclosed STR");
-  }
 }
 
 <EAT2>{
   [.]{2} {adjust(); begin(StartCondition__::STR);}
-  <<EOF>> {
-    errormsg_->Error(errormsg_->tok_pos_, "unclosed STR");
-  }
 }
 
 <IGNORE>{
@@ -186,14 +185,8 @@
     more();
   }
   .|[ \t\n] {more();adjustX(1);}
-  <<EOF>> {
-    errormsg_->Error(errormsg_->tok_pos_, "unclosed trans-meaning ");
-  }
 }
 
-<<EOF>> {
-  adjust();
-}
 
  /* reserved words */
 "array"/[ ] {adjust(); return Parser::ARRAY;}
