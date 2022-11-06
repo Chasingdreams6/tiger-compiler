@@ -59,13 +59,19 @@ class Exp {
   // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`,
   //        and ` IntAndTable *Interp(Table *)`
+public:
+  virtual int MaxArgs() const = 0;
+  virtual IntAndTable *Interp(Table *) const = 0;
 };
 
 class IdExp : public Exp {
  public:
   explicit IdExp(std::string id) : id(std::move(id)) {}
   // TODO: you'll have to add some definitions here (lab1).
-
+  int MaxArgs() const override {
+    return 0;
+  }
+  IntAndTable *Interp(Table *t) const override;
  private:
   std::string id;
 };
@@ -74,7 +80,10 @@ class NumExp : public Exp {
  public:
   explicit NumExp(int num) : num(num) {}
   // TODO: you'll have to add some definitions here.
-
+  int MaxArgs() const override {
+    return 0;
+  }
+  IntAndTable *Interp(Table *t) const override;
  private:
   int num;
 };
@@ -83,7 +92,10 @@ class OpExp : public Exp {
  public:
   OpExp(Exp *left, BinOp oper, Exp *right)
       : left(left), oper(oper), right(right) {}
-
+  int MaxArgs() const override {
+    return std::max(left->MaxArgs(), right->MaxArgs());
+  }
+  IntAndTable *Interp(Table *t) const override;
  private:
   Exp *left;
   BinOp oper;
@@ -93,7 +105,10 @@ class OpExp : public Exp {
 class EseqExp : public Exp {
  public:
   EseqExp(Stm *stm, Exp *exp) : stm(stm), exp(exp) {}
-
+  int MaxArgs() const override {
+      return std::max(stm->MaxArgs(), exp->MaxArgs());
+  }
+  IntAndTable *Interp(Table *t) const override;
  private:
   Stm *stm;
   Exp *exp;
@@ -104,12 +119,19 @@ class ExpList {
   // TODO: you'll have to add some definitions here (lab1).
   // Hints: You may add interfaces like `int MaxArgs()`, `int NumExps()`,
   //        and ` IntAndTable *Interp(Table *)`
+  virtual int getNum() const = 0;
+  virtual Table* Interp(Table *t) const = 0;
 };
 
 class PairExpList : public ExpList {
  public:
   PairExpList(Exp *exp, ExpList *tail) : exp(exp), tail(tail) {}
   // TODO: you'll have to add some definitions here (lab1).
+  int getNum() const override {
+    if (tail == nullptr) return 1;
+    return 1 + tail->getNum();
+  }
+  Table* Interp(Table *t) const override;
  private:
   Exp *exp;
   ExpList *tail;
@@ -119,6 +141,10 @@ class LastExpList : public ExpList {
  public:
   LastExpList(Exp *exp) : exp(exp) {}
   // TODO: you'll have to add some definitions here (lab1).
+  int getNum() const override {
+    return 1;
+  }
+  Table* Interp(Table *t) const override;
  private:
   Exp *exp;
 };
@@ -142,6 +168,7 @@ struct IntAndTable {
 
   IntAndTable(int i, Table *t) : i(i), t(t) {}
 };
+
 
 }  // namespace A
 
