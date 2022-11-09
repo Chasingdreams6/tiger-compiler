@@ -286,10 +286,12 @@ void FunctionDec::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
       errormsg->Error(function->pos_, "two functions have the same name");
     if (function->result_) {
       type::Ty *result_ty = tenv->Look(function->result_)->ActualTy();
-      venv->Enter(function->name_, new env::FunEntry(function->params_->MakeFormalTyList(tenv, errormsg), result_ty));
+      venv->Enter(function->name_,
+                  new env::FunEntry(function->params_->MakeFormalTyList(tenv, errormsg), result_ty));
     }
     else { // void function
-      venv->Enter(function->name_, new env::FunEntry(function->params_->MakeFormalTyList(tenv, errormsg), type::VoidTy::Instance()));
+      venv->Enter(function->name_,
+                  new env::FunEntry(function->params_->MakeFormalTyList(tenv, errormsg), type::VoidTy::Instance()));
     }
   }
   for (absyn::FunDec *function : functions_->GetList()) { // the second pass
