@@ -84,9 +84,13 @@ void WhileExp::Traverse(esc::EscEnvPtr env, int depth) {
 }
 
 void ForExp::Traverse(esc::EscEnvPtr env, int depth) {
+  env->BeginScope();
+  escape_ = false;
+  env->Enter(var_, new esc::EscapeEntry(depth, &escape_));
   lo_->Traverse(env, depth);
   hi_->Traverse(env, depth);
   body_->Traverse(env, depth);
+  env->EndScope();
 }
 
 void BreakExp::Traverse(esc::EscEnvPtr env, int depth) {}
@@ -113,6 +117,7 @@ void FunctionDec::Traverse(esc::EscEnvPtr env, int depth) {
     env->BeginScope();
     for (; param_it != function->params_->GetList().end(); param_it++) {
       //setEscapeOne(env, (*param_it)->name_, depth);
+      (*param_it)->escape_ = false;
       env->Enter((*param_it)->name_,
                  new esc::EscapeEntry(depth + 1, &((*param_it)->escape_)));
     }
@@ -123,6 +128,7 @@ void FunctionDec::Traverse(esc::EscEnvPtr env, int depth) {
 
 void VarDec::Traverse(esc::EscEnvPtr env, int depth) {
   init_->Traverse(env, depth);
+  escape_ = false;
   env->Enter(var_, new esc::EscapeEntry(depth, &(escape_)));
 }
 
@@ -132,9 +138,6 @@ void TypeDec::Traverse(esc::EscEnvPtr env, int depth) {
       auto* type_ptr = (absyn::RecordTy*) ((*nameAndTy).ty_);
       auto reclist_it = type_ptr->record_->GetList().begin();
       for (; reclist_it != type_ptr->record_->GetList().end(); reclist_it++) {
-//        env->Enter((*reclist_it)->name_,
-//                   new esc::EscapeEntry(depth,
-//                                        &((*reclist_it)->escape_)));
           (*reclist_it)->escape_ = true;
       }
     }
