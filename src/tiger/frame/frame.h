@@ -71,13 +71,25 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
-  
   virtual ~Access() = default;
-  
+  virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
 };
 
+/*
+ * 1. The locations of all the formals
+   2. Instructions required to implement the “view shift”
+   3. The number of locals allocated so far
+   4. And the label at which the function’s machine code is to begin
+ * */
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+  Frame() {
+    size_ = 0;
+  }
+  int size_;
+  std::list<frame::Access*> *formals_; // the locations of all the formals
+  Access* AllocLocal(bool escape);
 };
 
 /**
@@ -131,7 +143,8 @@ private:
   std::list<Frag*> frags_;
 };
 
-/* TODO: Put your lab5 code here */
+//TODO shift of view ppt12-15
+//frame::Frame NewFrame(temp::Label *name, std::list<bool> formals) {}
 
 } // namespace frame
 
