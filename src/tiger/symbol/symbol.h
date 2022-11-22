@@ -23,10 +23,10 @@ public:
   static Symbol *UniqueSymbol(std::string_view);
   [[nodiscard]] std::string Name() const { return name_; }
 
-private:
   Symbol(std::string name, Symbol *next)
       : name_(std::move(name)), next_(next) {}
 
+private:
   std::string name_;
   Symbol *next_;
 };

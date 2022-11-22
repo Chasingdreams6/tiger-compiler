@@ -17,7 +17,8 @@ type::Ty *SimpleVar::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
     return (static_cast<env::VarEntry*>(entry))->ty_->ActualTy();
   }
   else {
-    errormsg->Error(pos_, "undefined variable %s", sym_->Name().data());
+    errormsg->Error(pos_, "undefined variable %s",
+                    sym_->Name().data());
   }
   return type::IntTy::Instance();
 }

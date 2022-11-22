@@ -10,8 +10,31 @@
 #include "tiger/codegen/assem.h"
 
 
+
 namespace frame {
 
+#define REGDEF { static temp::Temp *t = nullptr; if(!t) t = temp::TempFactory::NewTemp(); return t;}
+    inline temp::Temp* RAX() REGDEF
+    inline temp::Temp* RBX() REGDEF
+    inline temp::Temp* RCX() REGDEF
+    inline temp::Temp* RDX() REGDEF
+    inline temp::Temp* R8() REGDEF
+    inline temp::Temp* R9() REGDEF
+    inline temp::Temp* R10() REGDEF
+    inline temp::Temp* R11() REGDEF
+    inline temp::Temp* R12() REGDEF
+    inline temp::Temp* R13() REGDEF
+    inline temp::Temp* R14() REGDEF
+    inline temp::Temp* R15() REGDEF
+    inline temp::Temp* RSP() REGDEF
+    inline temp::Temp* FP() REGDEF
+    inline temp::Temp* RDI() REGDEF
+    inline temp::Temp* RSI() REGDEF
+    inline temp::TempList* CallerSaves() {
+      static temp::TempList *regs_ = nullptr;
+      if (!regs_) regs_ = new temp::TempList({RBX(), R10(), R11(), RDI(), RSI(), RCX(), RDX(), R8(), R9()});
+      return regs_;
+    }
 class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
@@ -84,12 +107,23 @@ public:
 class Frame {
   /* TODO: Put your lab5 code here */
 public:
-  Frame() {
-    size_ = 0;
-  }
+
+  temp::Label *name_;
   int size_;
-  std::list<frame::Access*> *formals_; // the locations of all the formals
-  Access* AllocLocal(bool escape);
+  std::list<frame::Access *> *formals_; // the locations of all the formals
+  tree::Stm *viewShift;
+  temp::TempList *calleeRegs; // remain regs for passing argument
+  temp::TempList *returnSink;
+  int usedRegs = 0;
+
+  virtual Access* AllocLocal(bool escape) = 0;
+  virtual std::list<frame::Access*>* Formals() const = 0;
+  virtual int Size() = 0;
+  //static Frame* NewFrame(temp::Label *name, std::list<bool> formals);
+  virtual std::string GetLabel() = 0;
+  virtual tree::Stm* ProcEntryExit1(tree::Stm* stm) = 0;
+  virtual assem::InstrList* ProcEntryExit2(assem::InstrList* body) = 0;
+  //virtual assem::Proc* ProcEntryExit3(Frame *pFrame, assem::InstrList* il) = 0;
 };
 
 /**

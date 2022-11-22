@@ -14,6 +14,7 @@ void AssemGen::GenAssem(bool need_ra) {
   // Output proc
   phase = frame::Frag::Proc;
   fprintf(out_, ".text\n");
+  assert(frags);
   for (auto &&frag : frags->GetList())
     frag->OutputAssem(out_, phase, need_ra);
 
@@ -27,6 +28,10 @@ void AssemGen::GenAssem(bool need_ra) {
 } // namespace output
 
 namespace frame {
+
+assem::Proc *ProcEntryExit3(Frame *pFrame, assem::InstrList *pList) {
+  return new assem::Proc("", pList, "");
+}
 
 void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   std::unique_ptr<canon::Traces> traces;

@@ -8,6 +8,7 @@
 #include "tiger/env/env.h"
 #include "tiger/errormsg/errormsg.h"
 #include "tiger/frame/frame.h"
+#include "tiger/frame/x64frame.h"
 #include "tiger/semant/types.h"
 
 namespace tr {
@@ -33,6 +34,10 @@ public:
 
   explicit PatchList(std::list<temp::Label **> patch_list)
       : patch_list_(patch_list) {}
+
+  PatchList(temp::Label **one) {
+    patch_list_.push_back(one);
+  }
   PatchList() = default;
 
   [[nodiscard]] const std::list<temp::Label **> &GetList() const {
@@ -43,22 +48,21 @@ private:
   std::list<temp::Label **> patch_list_;
 };
 
-class Access {
-public:
-  Level *level_;
-  frame::Access *access_;
 
-  Access(Level *level, frame::Access *access)
-      : level_(level), access_(access) {}
-  static Access *AllocLocal(Level *level, bool escape);
-};
 
 class Level {
 public:
   frame::Frame *frame_;
   Level *parent_;
-
-  /* TODO: Put your lab5 code here */
+  Level() {}
+  Level(Level* parent, frame::Frame *frame1) : parent_(parent), frame_(frame1){}
+  static Level *NewLevel(Level* parent, temp::Label* label, std::list<bool>* formals) {
+    if (!formals) {
+      formals = new std::list<bool> { true};
+    }
+    else formals->push_front(true);
+    return new Level(parent, new frame::X64Frame(label, formals));
+  }
 };
 
 class ProgTr {
@@ -70,7 +74,9 @@ public:
         errormsg_(std::move(errorMsg)),
         tenv_(std::make_unique<env::TEnv>()),
         venv_(std::make_unique<env::VEnv>()),
-        main_level_(std::make_unique<Level>()){}
+        main_level_(std::make_unique<Level>()){
+    //errormsg_->Error(255, "\nStart construct ProcTr\n");
+  }
   /**
    * Translate IR tree
    */
