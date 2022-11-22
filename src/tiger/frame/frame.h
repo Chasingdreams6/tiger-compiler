@@ -30,11 +30,9 @@ namespace frame {
     inline temp::Temp* FP() REGDEF
     inline temp::Temp* RDI() REGDEF
     inline temp::Temp* RSI() REGDEF
-    inline temp::TempList* CallerSaves() {
-      static temp::TempList *regs_ = nullptr;
-      if (!regs_) regs_ = new temp::TempList({RBX(), R10(), R11(), RDI(), RSI(), RCX(), RDX(), R8(), R9()});
-      return regs_;
-    }
+
+    //temp::TempList* CalleeSaves();
+    //inline temp::TempList* callee
 class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
@@ -112,6 +110,7 @@ public:
   int size_;
   std::list<frame::Access *> *formals_; // the locations of all the formals
   tree::Stm *viewShift;
+  //std::vector<tree::Stm*> viewShift;
   temp::TempList *calleeRegs; // remain regs for passing argument
   temp::TempList *returnSink;
   int usedRegs = 0;

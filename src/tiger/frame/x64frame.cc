@@ -43,6 +43,7 @@ Access *X64Frame::AllocLocal(bool escape) {
   }
 }
 void X64Frame::ViewShift(tree::Stm *stm) {
+  // viewShift.push_back(stm);
   if (!viewShift) {
     viewShift = new tree::SeqStm(stm, nullptr);
     return;
@@ -50,8 +51,7 @@ void X64Frame::ViewShift(tree::Stm *stm) {
   auto *last_stm = static_cast<tree::SeqStm *>(viewShift);
   while (last_stm->right_)
     last_stm = static_cast<tree::SeqStm *>(last_stm->right_);
-  last_stm->right_ =
-      new tree::SeqStm(stm, new tree::ExpStm(new tree::ConstExp(0)));
+  last_stm->right_ = new tree::SeqStm(stm, nullptr);
 }
 X64Frame::X64Frame(temp::Label *name, std::list<bool> *formals) {
   name_ = name;
@@ -102,14 +102,23 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> *formals) {
     }
 }
 tree::Stm *X64Frame::ProcEntryExit1(tree::Stm *stm) {
-  return new tree::SeqStm(viewShift, stm);
+  if (!viewShift)
+    return stm;
+  tree::SeqStm *last = dynamic_cast<tree::SeqStm*>(viewShift);
+  while (last->right_) {
+    last = dynamic_cast<tree::SeqStm*>(last->right_);
+  }
+  last->right_ = stm;
+  return viewShift;
+  // return new tree::SeqStm(viewShift, stm);
 }
 assem::InstrList *X64Frame::ProcEntryExit2(assem::InstrList *body) {
   if (!returnSink) {
     returnSink = new temp::TempList({RAX()});
   }
-  temp::TempList *calleeSaved = new temp::TempList(
-      {frame::R12(), frame::R13(), frame::R14(), frame::R15()});
+//  temp::TempList *calleeSaved = new temp::TempList(
+//      {frame::R12(), frame::R13(), frame::R14(), frame::R15()});
+  temp::TempList* calleeSaved = reg_manager->CalleeSaves();
   temp::TempList *calleeSaveRestore =
       new temp::TempList({temp::TempFactory::NewTemp()});
   // save calleesaves
@@ -119,8 +128,8 @@ assem::InstrList *X64Frame::ProcEntryExit2(assem::InstrList *body) {
         new temp::TempList({calleeSaved->NthTemp(i)})));
     calleeSaveRestore->Append(temp::TempFactory::NewTemp());
   }
-  //assem::InstrList *restore_ins = new assem::InstrList;
-  // restore calleesaves
+  // assem::InstrList *restore_ins = new assem::InstrList;
+  //  restore calleesaves
   for (int i = 0; i < calleeSaved->GetList().size(); ++i) {
     body->Append(new assem::MoveInstr(
         "movq `s0, `d0", new temp::TempList{calleeSaved->NthTemp(i)},
@@ -130,38 +139,41 @@ assem::InstrList *X64Frame::ProcEntryExit2(assem::InstrList *body) {
   return body;
 }
 // assem::Proc *X64Frame::ProcEntryExit3(Frame *pFrame, assem::InstrList *il) {
-//   std::string frame_size = ".set " + temp::LabelFactory::LabelString(name_) +
-//   "_framesize,"; std::string prolog = frame_size + std::to_string(size_) +
-//   "\n"; prolog += temp::LabelFactory::LabelString(name_) + ":\n"; prolog +=
-//   "subq $" + std::to_string(size_) + ",%rsp\n";
+////  std::string frame_size =
+////      ".set " + temp::LabelFactory::LabelString(name_) + "_framesize,";
+////  std::string prolog = frame_size + std::to_string(size_) + "\n";
+//  prolog += temp::LabelFactory::LabelString(name_) + ":\n";
+//  prolog += "subq $" + std::to_string(size_) + ",%rsp\n";
 //
-//   std::string epilog = "addq $" + std::to_string(size_) + ",%rsp\n";
-//   epilog += "ret\n\n";
+//  std::string epilog = "addq $" + std::to_string(size_) + ",%rsp\n";
+//  epilog += "ret\n\n";
 //
-//   return new assem::Proc(prolog, il, epilog);
-// }
+//  return new assem::Proc(prolog, il, epilog);
+//}
 
 temp::TempList *X64RegManager::Registers() {
-  return new temp::TempList({rax, rbx, rcx, rdx, rsi, rdi, rbx, rbp, r8, r9,
-                             r10, r11, r12, r13, r14, r15});
+  return new temp::TempList({RAX(), RBX(), RCX(), RDX(), RSI(), RDI(), RBX(),
+                             FP(), R8(), R9(), R10(), R11(), R12(), R13(),
+                             R14(), R15()});
 }
 temp::TempList *X64RegManager::ArgRegs() {
-  return new temp::TempList({rdi, rsi, rdx, rcx, r8, r9});
+  return new temp::TempList({RDI(), RSI(), RCX(), RDX(), R8(), R9()});
 }
 temp::TempList *X64RegManager::CallerSaves() {
-  return new temp::TempList({r10, r11});
+  return new temp::TempList({R10(), R11()});
 }
 temp::TempList *X64RegManager::CalleeSaves() {
-  return new temp::TempList({rbx, rbp, r12, r13, r14, r15});
+  return new temp::TempList({RBX(), FP(), R12(), R13(), R14(), R15()});
 }
 temp::TempList *X64RegManager::ReturnSink() { return nullptr; } // TODO
 int X64RegManager::WordSize() { return 8; }
-temp::Temp *X64RegManager::FramePointer() { return rbp; }
-temp::Temp *X64RegManager::StackPointer() { return rsp; }
-temp::Temp *X64RegManager::ReturnValue() { return rax; }
+temp::Temp *X64RegManager::FramePointer() { return FP(); }
+temp::Temp *X64RegManager::StackPointer() { return RSP(); }
+temp::Temp *X64RegManager::ReturnValue() { return RAX(); }
 
-// assem::Proc *ProcEntryExit3(Frame *pFrame, assem::InstrList *pList) {
-//   return nullptr;
-// }
+//
+// temp::Temp *RAX() {
+//  return
+//}
 
 } // namespace frame

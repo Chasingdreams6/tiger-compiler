@@ -26,7 +26,6 @@ public:
     frame::Access *access = level->frame_->AllocLocal(escape);
     return new Access(level, access);
   }
-  tree::Exp *ToExp(Level *useLevel);
 };
 
 Level *OutMost() { // father
@@ -42,24 +41,6 @@ void *AllocFrag(frame::Frag *frag) {
     frags = new frame::Frags();
   }
   frags->PushBack(frag);
-}
-
-// useLevel is the used tr::Level, execute symbolic link here
-tree::Exp *Access::ToExp(Level *useLevel) {
-  tree::Exp *res = new tree::TempExp(frame::RSP());
-  do {
-    if (useLevel == level_) { // reach the definition level,
-                              // trans rsp to rbp
-      res = access_->ToExp(new tree::BinopExp(
-          tree::PLUS_OP, new tree::ConstExp(useLevel->frame_->Size()), res));
-      break;
-    } else { // use symlink to skip up, assume symlink st
-      res = new tree::MemExp(new tree::BinopExp(
-          tree::PLUS_OP, new tree::ConstExp(useLevel->frame_->Size()), res));
-    }
-    useLevel = useLevel->parent_;
-  } while (useLevel);
-  return res;
 }
 
 class Cx {
@@ -160,32 +141,15 @@ void ProgTr::Translate() {
   main_level_.reset(Level::NewLevel(OutMost(), main_label, nullptr));
   FillBaseTEnv();
   FillBaseVEnv();
-  //  // errormsg_->Error(255, "Before Translate");
-  //  auto stm = main_level_->frame_->ProcEntryExit1(
-  //      absyn_tree_
-  //          ->Translate(venv_.get(), tenv_.get(), main_level_.get(),
-  //                      temp::LabelFactory::NamedLabel("main"),
-  //                      errormsg_.get())
-  //          ->exp_->UnNx());
   auto stm =
       absyn_tree_
           ->Translate(venv_.get(), tenv_.get(), main_level_.get(),
-                      temp::LabelFactory::NamedLabel("main"), errormsg_.get())
+                      temp::LabelFactory::NamedLabel("tigermain"), errormsg_.get())
           ->exp_->UnNx();
   frame::Frag *frag = new frame::ProcFrag(stm, main_level_->frame_);
   AllocFrag(frag);
   // errormsg_->Error(255, "End Translate");
 }
-
-// Level *Level::NewLevel(Level *parent, temp::Label *label,
-//                        std::list<bool> *formals) {
-//   Level *newLevel = new Level(parent);
-//   formals->push_front(true); // static link
-//   newLevel->frame_ = new frame::X64Frame(label, formals);
-//   return newLevel;
-// }
-
-// frame::Fr
 
 } // namespace tr
 
@@ -204,9 +168,14 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   env::EnvEntry *entry = venv->Look(sym_);
   if (entry && typeid(*entry) == typeid(env::VarEntry)) {
     auto *varEntry = static_cast<env::VarEntry *>(entry);
+    tree::Exp *fp = new tree::TempExp(frame::FP());
     res->ty_ = varEntry->ty_->ActualTy();
-    res->exp_ = new tr::ExExp(varEntry->access_->ToExp(level));
-    // temp::Temp *curRsp = level->frame_->rsp_;
+    tr::Level* dst_lv = varEntry->access_->level_, *cur_lv = level;
+    while (cur_lv != dst_lv) {
+      fp = cur_lv->frame_->Formals()->front()->ToExp(fp);
+      cur_lv = cur_lv->parent_;
+    }
+    res->exp_ = new tr::ExExp(varEntry->access_->access_->ToExp(fp));
   } else {
     errormsg->Error(pos_, "undefined variable %s", sym_->Name().data());
     abort();
@@ -356,7 +325,8 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     }
     exp = caller_level->frame_->Formals()->front()->ToExp(exp);
   }
-  if (callee_level->parent_)
+  // attention, runtime function shouldn't pass static link as first parameter
+  if (callee_level->parent_ != tr::OutMost())
     arg_exps->Insert(exp);
   tree::Exp *res_exp = new tree::CallExp(new tree::NameExp(func_), arg_exps);
   return new tr::ExpAndTy(
@@ -825,9 +795,6 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       std::string str =
           "fundec " + function->name_->Name() + " " + typeid(*ret_ty).name();
       errormsg->Error(pos_, str);
-      //      sym::Symbol *tmp = new sym::Symbol("int", nullptr);
-      //      ret_ty = tenv->Look(tmp);
-      //      errormsg->Error(pos_, typeid(*ret_ty).name());
     }
     venv->Enter(function->name_, new_entry);
   }
@@ -836,6 +803,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto *fun_entry = static_cast<env::FunEntry *>(venv->Look(function->name_));
     FieldList *pf = function->params_;
     auto access_it = fun_entry->level_->frame_->Formals()->begin();
+    access_it++;  // Attention! Must pass the symbolic link
     for (auto param_it = pf->GetList().begin(); param_it != pf->GetList().end();
          param_it++, access_it++) { // for each params
       auto *new_acc = new tr::Access(fun_entry->level_, (*access_it));

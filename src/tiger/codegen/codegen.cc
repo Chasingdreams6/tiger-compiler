@@ -16,12 +16,13 @@ namespace cg {
 
 void CodeGen::Codegen() {
   fs_ = frame_->name_->Name() + "_framesize";
+  // fs_ = frame_->Size()
   assem_instr_ = std::make_unique<AssemInstr>(new assem::InstrList);
   for (auto it = traces_->GetStmList()->GetList().begin();
        it != traces_->GetStmList()->GetList().end(); it++) {
     (*it)->Munch(*assem_instr_->GetInstrList(), fs_);
   }
-  //TODO may need this?
+  // TODO may need this?
   frame_->ProcEntryExit2(assem_instr_->GetInstrList());
 }
 
@@ -33,7 +34,6 @@ void AssemInstr::Print(FILE *out, temp::Map *map) const {
 } // namespace cg
 
 namespace tree {
-
 
 void SeqStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   left_->Munch(instr_list, fs);
@@ -148,7 +148,22 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
                                                    e1->Munch(instr_list, fs)}),
                                nullptr));
     }
-  }
+  } else if (typeid(*dst_) == typeid(tree::TempExp)) {
+    if (typeid(*src_) == typeid(tree::ConstExp)) {
+      tree::ConstExp *e2 = dynamic_cast<tree::ConstExp *>(src_);
+      std::string imm = '$' + std::to_string(e2->consti_);
+      instr_list.Append(new assem::OperInstr(
+          "movq " + imm + ", `d0",
+          new temp::TempList({dynamic_cast<tree::TempExp *>(dst_)->temp_}),
+          nullptr, nullptr));
+    } else {
+      instr_list.Append(new assem::MoveInstr(
+          "movq `s0, `d0",
+          new temp::TempList({dynamic_cast<tree::TempExp *>(dst_)->temp_}),
+          new temp::TempList({src_->Munch(instr_list, fs)})));
+    }
+  } else
+    assert(0);
 }
 
 void ExpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
@@ -281,7 +296,7 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *r = frame::RAX();
   temp::TempList *args = args_->MunchArgs(instr_list, fs);
   instr_list.Append(new assem::OperInstr(
-      "call " + name->name_->Name(),
+      "callq " + name->name_->Name(),
       new temp::TempList(
           {frame::RAX(), frame::RBX(), frame::R10(), frame::R11(), frame::RDI(),
            frame::RSI(), frame::RCX(), frame::RDX(), frame::R8(), frame::R9()}),
@@ -301,7 +316,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
     instr_list.Append(
         new assem::MoveInstr(ins, new temp::TempList({args->NthTemp(i)}),
                              new temp::TempList((*it)->Munch(instr_list, fs))));
-    //used->Insert(args->NthTemp(i));
+    // used->Insert(args->NthTemp(i));
     used->Append(args->NthTemp(i));
     it++;
   }
