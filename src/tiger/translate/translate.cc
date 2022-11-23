@@ -624,15 +624,15 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
+  temp::Label *test_label = temp::LabelFactory::NewLabel();
+  temp::Label *body_label = temp::LabelFactory::NewLabel();
+  temp::Label *done_label = temp::LabelFactory::NewLabel();
   tr::ExpAndTy *test_res = test_->Translate(venv, tenv, level, label, errormsg);
-  tr::ExpAndTy *body_res = body_->Translate(venv, tenv, level, label, errormsg);
+  tr::ExpAndTy *body_res = body_->Translate(venv, tenv, level, done_label, errormsg);
   if (!body_res->ty_->IsSameType(type::VoidTy::Instance())) {
     errormsg->Error(pos_, "while body must produce no value");
     abort();
   }
-  temp::Label *test_label = temp::LabelFactory::NewLabel();
-  temp::Label *body_label = temp::LabelFactory::NewLabel();
-  temp::Label *done_label = temp::LabelFactory::NewLabel();
   tree::Stm *test_stm =
       new tree::CjumpStm(tree::EQ_OP, test_res->exp_->UnEx(),
                          new tree::ConstExp(0), done_label, body_label);
@@ -669,7 +669,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   tr::Access *access = tr::Access::AllocLocal(level, escape_);
   venv->Enter(var_, new env::VarEntry(access, lo_res->ty_, true));
-  tr::ExpAndTy *body_res = body_->Translate(venv, tenv, level, label, errormsg);
+  tr::ExpAndTy *body_res = body_->Translate(venv, tenv, level, done_label, errormsg);
   venv->EndScope();
   tree::Exp *i = access->access_->ToExp(new tree::TempExp(frame::FP()));
   return new tr::ExpAndTy(
