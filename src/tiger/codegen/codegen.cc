@@ -249,7 +249,7 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
           "addq `s0, `d0", new temp::TempList({lv}),
           new temp::TempList({e1->right_->Munch(instr_list, fs)}), nullptr));
       instr_list.Append(
-          new assem::OperInstr("movq (`s0), `r0", new temp::TempList({r}),
+          new assem::OperInstr("movq (`s0), `d0", new temp::TempList({r}),
                                new temp::TempList({lv}), nullptr));
     }
     return r;

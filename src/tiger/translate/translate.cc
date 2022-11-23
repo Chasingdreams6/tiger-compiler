@@ -223,9 +223,10 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                             type::VoidTy::Instance());
   }
   if (typeid(*sub_res->ty_->ActualTy()) != typeid(type::IntTy)) {
-    abort();
     errormsg->Error(subscript_->pos_, "exp should be an integer");
+    abort();
   }
+  //printf("type is %s\n", typeid(var_res->ty_->ActualTy()).name());
 
   return new tr::ExpAndTy(
       new tr::ExExp(new tree::MemExp(new tree::BinopExp(
@@ -233,7 +234,7 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
           new tree::BinopExp(tree::MUL_OP,
                              new tree::ConstExp(reg_manager->WordSize()),
                              sub_res->exp_->UnEx())))),
-      var_res->ty_->ActualTy());
+      dynamic_cast<type::ArrayTy*>(var_res->ty_)->ty_->ActualTy());
 }
 
 tr::ExpAndTy *VarExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -288,7 +289,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   if (args_->GetList().size() <
       ((env::FunEntry *)entry)->formals_->GetList().size()) {
-    errormsg->Error(pos_, "para type mismatch");
+    errormsg->Error(pos_, "para type mismatch, actual smaller size");
     abort();
     return new tr::ExpAndTy(nullptr, type::VoidTy::Instance());
   }
@@ -307,9 +308,11 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
        arg_it++, formal_it++) {
     tr::ExpAndTy *arg_res =
         (*arg_it)->Translate(venv, tenv, level, label, errormsg);
-    if ((typeid(*arg_res->ty_) != typeid(*((*formal_it)->ActualTy()))) &&
-        (!arg_res->ty_->IsSameType(type::NilTy::Instance()))) {
+    if (!arg_res->ty_->IsSameType((*formal_it)->ActualTy())) {
       errormsg->Error((*arg_it)->pos_, "para type mismatch");
+      printf("actual is %s\n", typeid(*arg_res->ty_).name());
+      printf("formal is %s\n", typeid(*(*formal_it)->ActualTy()).name());
+      //printf("%d\n", typeid(*arg_res->ty_).name() == typeid())
       abort();
     }
     arg_exps->Append(arg_res->exp_->UnEx());
@@ -328,9 +331,10 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   // attention, runtime function shouldn't pass static link as first parameter
   if (callee_level->parent_ != tr::OutMost())
     arg_exps->Insert(exp);
-//  printf(
-//      "End translation function %s, retty=%s\n", func_->Name().c_str(),
-//      typeid(dynamic_cast<env::FunEntry *>(entry)->result_->ActualTy()).name());
+  //  printf(
+  //      "End translation function %s, retty=%s\n", func_->Name().c_str(),
+  //      typeid(dynamic_cast<env::FunEntry
+  //      *>(entry)->result_->ActualTy()).name());
   tree::Exp *res_exp = new tree::CallExp(new tree::NameExp(func_), arg_exps);
   return new tr::ExpAndTy(
       new tr::ExExp(res_exp),
@@ -628,7 +632,8 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   temp::Label *body_label = temp::LabelFactory::NewLabel();
   temp::Label *done_label = temp::LabelFactory::NewLabel();
   tr::ExpAndTy *test_res = test_->Translate(venv, tenv, level, label, errormsg);
-  tr::ExpAndTy *body_res = body_->Translate(venv, tenv, level, done_label, errormsg);
+  tr::ExpAndTy *body_res =
+      body_->Translate(venv, tenv, level, done_label, errormsg);
   if (!body_res->ty_->IsSameType(type::VoidTy::Instance())) {
     errormsg->Error(pos_, "while body must produce no value");
     abort();
@@ -669,7 +674,8 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   tr::Access *access = tr::Access::AllocLocal(level, escape_);
   venv->Enter(var_, new env::VarEntry(access, lo_res->ty_, true));
-  tr::ExpAndTy *body_res = body_->Translate(venv, tenv, level, done_label, errormsg);
+  tr::ExpAndTy *body_res =
+      body_->Translate(venv, tenv, level, done_label, errormsg);
   venv->EndScope();
   tree::Exp *i = access->access_->ToExp(new tree::TempExp(frame::FP()));
   return new tr::ExpAndTy(
@@ -743,11 +749,10 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
                                   err::ErrorMsg *errormsg) const {
-  type::Ty *res_ty = tenv->Look(typ_);
+  type::Ty *res_ty = tenv->Look(typ_)->ActualTy();
   tr::ExpAndTy *size_res = size_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *init_res = init_->Translate(venv, tenv, level, label, errormsg);
-  if (typeid(*(((type::ArrayTy *)res_ty)->ty_->ActualTy())) !=
-      typeid(*init_res->ty_)) {
+  if (!((type::ArrayTy *)res_ty)->ty_->IsSameType(init_res->ty_->ActualTy())) {
     errormsg->Error(pos_, "type mismatch");
     abort();
     return new tr::ExpAndTy(nullptr, res_ty);
