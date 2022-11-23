@@ -328,6 +328,9 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   // attention, runtime function shouldn't pass static link as first parameter
   if (callee_level->parent_ != tr::OutMost())
     arg_exps->Insert(exp);
+  printf(
+      "End translation function %s, retty=%s\n", func_->Name().c_str(),
+      typeid(dynamic_cast<env::FunEntry *>(entry)->result_->ActualTy()).name());
   tree::Exp *res_exp = new tree::CallExp(new tree::NameExp(func_), arg_exps);
   return new tr::ExpAndTy(
       new tr::ExExp(res_exp),
@@ -523,7 +526,7 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *last_one =
       (seq_->GetList().back())->Translate(venv, tenv, level, label, errormsg);
   if (seqStm) {
-    seqStm->right_ = new tree::ExpStm(new tree::ConstExp(0));
+    seqLast->right_ = new tree::ExpStm(new tree::ConstExp(0));
   }
   if (seqStm)
     return new tr::ExpAndTy(
@@ -559,7 +562,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *if_res = test_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *then_res = then_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *else_res = nullptr;
-  type::Ty* res_ty = type::VoidTy::Instance();
+  type::Ty *res_ty = type::VoidTy::Instance();
   if (elsee_) {
     else_res = elsee_->Translate(venv, tenv, level, label, errormsg);
     res_ty = then_res->ty_->ActualTy();

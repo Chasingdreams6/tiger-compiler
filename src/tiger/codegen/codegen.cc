@@ -277,7 +277,7 @@ temp::Temp *EseqExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *r = temp::TempFactory::NewTemp();
-  std::string ins = "leaq " + name_->Name() + "%(rip), `d0";
+  std::string ins = "leaq " + name_->Name() + "(%rip), `d0";
   instr_list.Append(
       new assem::OperInstr(ins, new temp::TempList({r}), nullptr, nullptr));
   return r;
