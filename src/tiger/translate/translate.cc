@@ -141,11 +141,11 @@ void ProgTr::Translate() {
   main_level_.reset(Level::NewLevel(OutMost(), main_label, nullptr));
   FillBaseTEnv();
   FillBaseVEnv();
-  auto stm =
-      absyn_tree_
-          ->Translate(venv_.get(), tenv_.get(), main_level_.get(),
-                      temp::LabelFactory::NamedLabel("tigermain"), errormsg_.get())
-          ->exp_->UnNx();
+  auto stm = absyn_tree_
+                 ->Translate(venv_.get(), tenv_.get(), main_level_.get(),
+                             temp::LabelFactory::NamedLabel("tigermain"),
+                             errormsg_.get())
+                 ->exp_->UnNx();
   frame::Frag *frag = new frame::ProcFrag(stm, main_level_->frame_);
   AllocFrag(frag);
   // errormsg_->Error(255, "End Translate");
@@ -170,7 +170,7 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto *varEntry = static_cast<env::VarEntry *>(entry);
     tree::Exp *fp = new tree::TempExp(frame::FP());
     res->ty_ = varEntry->ty_->ActualTy();
-    tr::Level* dst_lv = varEntry->access_->level_, *cur_lv = level;
+    tr::Level *dst_lv = varEntry->access_->level_, *cur_lv = level;
     while (cur_lv != dst_lv) {
       fp = cur_lv->frame_->Formals()->front()->ToExp(fp);
       cur_lv = cur_lv->parent_;
@@ -253,7 +253,7 @@ tr::ExpAndTy *IntExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
                                 err::ErrorMsg *errormsg) const {
   return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(val_)),
-                            type::IntTy::Instance());
+                          type::IntTy::Instance());
 }
 
 tr::ExpAndTy *StringExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -482,18 +482,23 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto *alloc_stm = new tree::MoveStm(
       new tree::TempExp(record),
       new tree::CallExp(
-          new tree::NameExp(temp::LabelFactory::NamedLabel("allocRecord")),
+          new tree::NameExp(temp::LabelFactory::NamedLabel("alloc_record")),
           runtime_args));
   // init value to the record type
-  tree::Stm *init_stm = nullptr;
+  tree::Stm *init_stm = nullptr, *init_tail = nullptr;
   for (int i = 0; i < fields_->GetList().size(); ++i) {
     tree::Stm *tmp_stm =
         new tree::MoveStm(new tree::MemExp(new tree::BinopExp(
                               tree::PLUS_OP, new tree::TempExp(record),
                               new tree::ConstExp(i * reg_manager->WordSize()))),
                           record_exps[i]->UnEx());
-    init_stm = new tree::SeqStm(tmp_stm, init_stm);
+    if (!init_stm) {
+      init_tail = init_stm = new tree::SeqStm(tmp_stm, init_stm);
+    } else
+      init_stm = new tree::SeqStm(tmp_stm, init_stm);
   }
+  dynamic_cast<tree::SeqStm *>(init_tail)->right_ =
+      new tree::ExpStm(new tree::ConstExp(0));
   return new tr::ExpAndTy(
       new tr::ExExp(new tree::EseqExp(new tree::SeqStm(alloc_stm, init_stm),
                                       new tree::TempExp(record))),
@@ -554,9 +559,11 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *if_res = test_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *then_res = then_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *else_res = nullptr;
-  if (elsee_)
+  type::Ty* res_ty = type::VoidTy::Instance();
+  if (elsee_) {
     else_res = elsee_->Translate(venv, tenv, level, label, errormsg);
-  auto res_ty = type::VoidTy::Instance();
+    res_ty = then_res->ty_->ActualTy();
+  }
   auto e1 = if_res->exp_->UnCx(errormsg);
   if (!elsee_) { // if-then
     if (typeid(*then_res->ty_) != typeid(type::VoidTy)) {
@@ -749,7 +756,7 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tree::Stm *alloc_stm = new tree::MoveStm(
       new tree::TempExp(arr),
       new tree::CallExp(
-          new tree::NameExp(temp::LabelFactory::NamedLabel("initArray")),
+          new tree::NameExp(temp::LabelFactory::NamedLabel("init_array")),
           runtime_args));
   return new tr::ExpAndTy(
       new tr::ExExp(new tree::EseqExp(alloc_stm, new tree::TempExp(arr))),
@@ -803,7 +810,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     auto *fun_entry = static_cast<env::FunEntry *>(venv->Look(function->name_));
     FieldList *pf = function->params_;
     auto access_it = fun_entry->level_->frame_->Formals()->begin();
-    access_it++;  // Attention! Must pass the symbolic link
+    access_it++; // Attention! Must pass the symbolic link
     for (auto param_it = pf->GetList().begin(); param_it != pf->GetList().end();
          param_it++, access_it++) { // for each params
       auto *new_acc = new tr::Access(fun_entry->level_, (*access_it));
