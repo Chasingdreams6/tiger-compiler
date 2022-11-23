@@ -183,8 +183,19 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     ins = "subq";
     break;
   case MUL_OP:
-    ins = "imulq";
-    break;
+    instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
+                                           new temp::TempList({frame::RAX()}),
+                                           new temp::TempList({lv})));
+    instr_list.Append(new assem::OperInstr(
+        "cqto", new temp::TempList({frame::RDX(), frame::RAX()}),
+        new temp::TempList({frame::RDX()}), nullptr));
+    instr_list.Append(new assem::OperInstr(
+        "imulq `s0", new temp::TempList({frame::RDX(), frame::RAX()}),
+        new temp::TempList({rv, frame::RAX(), frame::RDX()}), nullptr));
+    instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
+                                           new temp::TempList({r}),
+                                           new temp::TempList({frame::RAX()})));
+    return r;
   case DIV_OP:
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
                                            new temp::TempList({frame::RAX()}),

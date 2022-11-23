@@ -176,7 +176,7 @@ type::Ty *AssignExp::SemAnalyze(env::VEnvPtr venv, env::TEnvPtr tenv,
        errormsg->Error(pos_, "loop variable can't be assigned");
     }
   }
-  if (typeid(*var_ty) != typeid(*exp_ty) && typeid(*var_ty) != typeid(type::VoidTy) && typeid(*exp_ty) != typeid(type::VoidTy)) {
+  if (!var_ty->IsSameType(exp_ty) && typeid(*var_ty) != typeid(type::VoidTy) && typeid(*exp_ty) != typeid(type::VoidTy)) {
     errormsg->Error(pos_, "unmatched assign exp");
     return type::VoidTy::Instance();
   }

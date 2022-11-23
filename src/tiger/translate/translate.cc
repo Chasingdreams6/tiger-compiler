@@ -328,9 +328,9 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   // attention, runtime function shouldn't pass static link as first parameter
   if (callee_level->parent_ != tr::OutMost())
     arg_exps->Insert(exp);
-  printf(
-      "End translation function %s, retty=%s\n", func_->Name().c_str(),
-      typeid(dynamic_cast<env::FunEntry *>(entry)->result_->ActualTy()).name());
+//  printf(
+//      "End translation function %s, retty=%s\n", func_->Name().c_str(),
+//      typeid(dynamic_cast<env::FunEntry *>(entry)->result_->ActualTy()).name());
   tree::Exp *res_exp = new tree::CallExp(new tree::NameExp(func_), arg_exps);
   return new tr::ExpAndTy(
       new tr::ExExp(res_exp),
