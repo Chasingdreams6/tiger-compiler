@@ -368,12 +368,12 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                               type::IntTy::Instance());
     }
   }
-  //  if (left_res->ty_->IsSameType(type::StringTy::Instance())) {
-  //    left_exp = new tree::CallExp(
-  //        new tree::NameExp(temp::LabelFactory::NamedLabel("stringEqual")),
-  //        new tree::ExpList({left_exp, right_exp}));
-  //    right_exp = new tree::ConstExp(1);
-  //  }
+    if (left_res->ty_->IsSameType(type::StringTy::Instance())) {
+      left_exp = new tree::CallExp(
+          new tree::NameExp(temp::LabelFactory::NamedLabel("string_equal")),
+          new tree::ExpList({left_exp, right_exp}));
+      right_exp = new tree::ConstExp(1);
+    }
   //  if (typeid(*left_res->ty_) != typeid(type::IntTy) &&
   //      (!left_res->ty_->IsSameType(type::NilTy::Instance()))) {
   //    errormsg->Error(left_->pos_, "integer required");
