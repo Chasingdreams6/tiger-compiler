@@ -97,6 +97,15 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> *formals) {
                                            new tree::TempExp(R9()));
         ViewShift(stm);
       } break;
+      default: // spill, get value from stack
+      {
+        tree::Stm *stm = new tree::MoveStm(
+            acc->ToExp(new tree::TempExp(FP())),
+            new tree::MemExp(new tree::BinopExp(
+                tree::PLUS_OP, new tree::TempExp(FP()),
+                new tree::ConstExp((pos + 1 - 6) * reg_manager->WordSize()))));
+        ViewShift(stm);
+      }
       }
       pos++;
     }
@@ -104,9 +113,9 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> *formals) {
 tree::Stm *X64Frame::ProcEntryExit1(tree::Stm *stm) {
   if (!viewShift)
     return stm;
-  tree::SeqStm *last = dynamic_cast<tree::SeqStm*>(viewShift);
+  tree::SeqStm *last = dynamic_cast<tree::SeqStm *>(viewShift);
   while (last->right_) {
-    last = dynamic_cast<tree::SeqStm*>(last->right_);
+    last = dynamic_cast<tree::SeqStm *>(last->right_);
   }
   last->right_ = stm;
   return viewShift;
@@ -116,9 +125,9 @@ assem::InstrList *X64Frame::ProcEntryExit2(assem::InstrList *body) {
   if (!returnSink) {
     returnSink = new temp::TempList({RAX()});
   }
-//  temp::TempList *calleeSaved = new temp::TempList(
-//      {frame::R12(), frame::R13(), frame::R14(), frame::R15()});
-  temp::TempList* calleeSaved = reg_manager->CalleeSaves();
+  //  temp::TempList *calleeSaved = new temp::TempList(
+  //      {frame::R12(), frame::R13(), frame::R14(), frame::R15()});
+  temp::TempList *calleeSaved = reg_manager->CalleeSaves();
   temp::TempList *calleeSaveRestore =
       new temp::TempList({temp::TempFactory::NewTemp()});
   // save calleesaves

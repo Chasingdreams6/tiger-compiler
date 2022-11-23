@@ -108,6 +108,7 @@ public:
 
   temp::Label *name_;
   int size_;
+  int maxArgs = 0;
   std::list<frame::Access *> *formals_; // the locations of all the formals
   tree::Stm *viewShift;
   //std::vector<tree::Stm*> viewShift;
@@ -118,6 +119,7 @@ public:
   virtual Access* AllocLocal(bool escape) = 0;
   virtual std::list<frame::Access*>* Formals() const = 0;
   virtual int Size() = 0;
+  virtual int MaxArgs() = 0;
   //static Frame* NewFrame(temp::Label *name, std::list<bool> formals);
   virtual std::string GetLabel() = 0;
   virtual tree::Stm* ProcEntryExit1(tree::Stm* stm) = 0;

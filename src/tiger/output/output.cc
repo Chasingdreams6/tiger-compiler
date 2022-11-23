@@ -31,14 +31,15 @@ namespace frame {
 
 assem::Proc *ProcEntryExit3(Frame *pFrame, assem::InstrList *pList) {
   std::string prolog, epilog;
-
+  int spill_size = std::max(pFrame->MaxArgs() - 6, 0) * reg_manager->WordSize();
+  int stack_size = spill_size + pFrame->Size();
   std::string frame_size =
       ".set " + temp::LabelFactory::LabelString(pFrame->name_) + "_framesize, ";
-  prolog = frame_size + std::to_string(pFrame->Size()) + "\n";
+  prolog = frame_size + std::to_string(stack_size) + "\n";
   prolog += temp::LabelFactory::LabelString(pFrame->name_) + ":\n";
-  prolog += "subq $" + std::to_string(pFrame->Size()) + ", %rsp\n";
+  prolog += "subq $" + std::to_string(stack_size) + ", %rsp\n";
 
-  epilog = "addq $" + std::to_string(pFrame->Size()) + ", %rsp\n";
+  epilog = "addq $" + std::to_string(stack_size) + ", %rsp\n";
   epilog += "retq\n";
   return new assem::Proc(prolog, pList, epilog);
 }

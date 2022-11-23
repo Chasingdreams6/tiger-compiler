@@ -226,7 +226,7 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     errormsg->Error(subscript_->pos_, "exp should be an integer");
     abort();
   }
-  //printf("type is %s\n", typeid(var_res->ty_->ActualTy()).name());
+  // printf("type is %s\n", typeid(var_res->ty_->ActualTy()).name());
 
   return new tr::ExpAndTy(
       new tr::ExExp(new tree::MemExp(new tree::BinopExp(
@@ -234,7 +234,7 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
           new tree::BinopExp(tree::MUL_OP,
                              new tree::ConstExp(reg_manager->WordSize()),
                              sub_res->exp_->UnEx())))),
-      dynamic_cast<type::ArrayTy*>(var_res->ty_)->ty_->ActualTy());
+      dynamic_cast<type::ArrayTy *>(var_res->ty_)->ty_->ActualTy());
 }
 
 tr::ExpAndTy *VarExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -312,7 +312,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       errormsg->Error((*arg_it)->pos_, "para type mismatch");
       printf("actual is %s\n", typeid(*arg_res->ty_).name());
       printf("formal is %s\n", typeid(*(*formal_it)->ActualTy()).name());
-      //printf("%d\n", typeid(*arg_res->ty_).name() == typeid())
+      // printf("%d\n", typeid(*arg_res->ty_).name() == typeid())
       abort();
     }
     arg_exps->Append(arg_res->exp_->UnEx());
@@ -329,8 +329,11 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     exp = caller_level->frame_->Formals()->front()->ToExp(exp);
   }
   // attention, runtime function shouldn't pass static link as first parameter
-  if (callee_level->parent_ != tr::OutMost())
+  if (callee_level->parent_ != tr::OutMost()) {
     arg_exps->Insert(exp);
+  }
+  // this is important for spill
+  caller_level->frame_->maxArgs = std::max(caller_level->frame_->maxArgs, (int)arg_exps->GetList().size());
   //  printf(
   //      "End translation function %s, retty=%s\n", func_->Name().c_str(),
   //      typeid(dynamic_cast<env::FunEntry
@@ -344,38 +347,69 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                tr::Level *level, temp::Label *label,
                                err::ErrorMsg *errormsg) const {
-  tree::CjumpStm *stm = nullptr;
+  tree::CjumpStm *stm = nullptr, *stm2 = nullptr;
+  tree::Stm *res = nullptr;
   tr::PatchList *trues = nullptr, *falses = nullptr;
-  tr::ExpAndTy *left_res = left_->Translate(venv, tenv, level, label, errormsg);
-  tr::ExpAndTy *right_res =
-      right_->Translate(venv, tenv, level, label, errormsg);
+  tr::ExpAndTy *left_res, *right_res;
+  tree::Exp *left_exp, *right_exp;
+  temp::Label *z;
   // TODO may need string cmp
-  tree::Exp *left_exp = left_res->exp_->UnEx(),
-            *right_exp = right_res->exp_->UnEx();
+  left_res = left_->Translate(venv, tenv, level, label, errormsg);
+  right_res = right_->Translate(venv, tenv, level, label, errormsg);
+  left_exp = left_res->exp_->UnEx();
+  right_exp = right_res->exp_->UnEx();
+  if (oper_ == PLUS_OP || oper_ == MINUS_OP || oper_ == TIMES_OP ||
+      oper_ == DIVIDE_OP || oper_ == LE_OP || oper_ == LT_OP ||
+      oper_ == GE_OP || oper_ == GT_OP || oper_ == EQ_OP || oper_ == NEQ_OP) {
+    if (!left_res->ty_->IsSameType(right_res->ty_)) {
+      errormsg->Error(pos_, "same type required");
+      abort();
+      return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
+                              type::IntTy::Instance());
+    }
+  }
   //  if (left_res->ty_->IsSameType(type::StringTy::Instance())) {
   //    left_exp = new tree::CallExp(
   //        new tree::NameExp(temp::LabelFactory::NamedLabel("stringEqual")),
   //        new tree::ExpList({left_exp, right_exp}));
   //    right_exp = new tree::ConstExp(1);
   //  }
-  if (typeid(*left_res->ty_) != typeid(type::IntTy) &&
-      (!left_res->ty_->IsSameType(type::NilTy::Instance()))) {
-    errormsg->Error(left_->pos_, "integer required");
-    abort();
-    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
+  //  if (typeid(*left_res->ty_) != typeid(type::IntTy) &&
+  //      (!left_res->ty_->IsSameType(type::NilTy::Instance()))) {
+  //    errormsg->Error(left_->pos_, "integer required");
+  //    abort();
+  //    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
+  //                            type::IntTy::Instance());
+  //  }
+  //  if ((typeid(*right_res->ty_) != typeid(type::IntTy)) &&
+  //      (!right_res->ty_->IsSameType(type::NilTy::Instance()))) {
+  //    errormsg->Error(right_->pos_, "integer required");
+  //    abort();
+  //    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
+  //                            type::IntTy::Instance());
+  //  }
+  switch (oper_) {
+  case absyn::Oper::AND_OP:
+    z = temp::LabelFactory::NewLabel();
+    stm = new tree::CjumpStm(tree::NE_OP, left_exp, new tree::ConstExp(0),
+                             z, nullptr);
+    stm2 = new tree::CjumpStm(tree::NE_OP, right_exp, new tree::ConstExp(0),
+                              nullptr, nullptr);
+    res = new tree::SeqStm(stm, new tree::SeqStm(new tree::LabelStm(z), stm2));
+    trues = new tr::PatchList(&stm2->true_label_);
+    falses = new tr::PatchList({&stm->false_label_, &stm2->false_label_});
+    return new tr::ExpAndTy(new tr::CxExp(*trues, *falses, res),
                             type::IntTy::Instance());
-  }
-  if ((typeid(*right_res->ty_) != typeid(type::IntTy)) &&
-      (!right_res->ty_->IsSameType(type::NilTy::Instance()))) {
-    errormsg->Error(right_->pos_, "integer required");
-    abort();
-    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
-                            type::IntTy::Instance());
-  }
-  if (!left_res->ty_->IsSameType(right_res->ty_)) {
-    errormsg->Error(pos_, "same type required");
-    abort();
-    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
+  case absyn::Oper::OR_OP:
+    z = temp::LabelFactory::NewLabel();
+    stm = new tree::CjumpStm(tree::EQ_OP, left_exp, new tree::ConstExp(1),
+                             nullptr, z);
+    stm2 = new tree::CjumpStm(tree::EQ_OP, right_exp, new tree::ConstExp(1),
+                              nullptr, nullptr);
+    res = new tree::SeqStm(stm, new tree::SeqStm(new tree::LabelStm(z), stm2));
+    trues = new tr::PatchList({&stm->true_label_, &stm2->true_label_});
+    falses = new tr::PatchList(&stm2->false_label_);
+    return new tr::ExpAndTy(new tr::CxExp(*trues, *falses, res),
                             type::IntTy::Instance());
   }
   switch (oper_) {
@@ -442,7 +476,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     return new tr::ExpAndTy(new tr::CxExp(*trues, *falses, stm),
                             type::IntTy::Instance());
   default:
-    errormsg->Error(pos_, "unsupported arithmetic operation");
+    errormsg->Error(pos_, "unsupported arithmetic operation %d", oper_);
     abort();
     return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
                             type::IntTy::Instance());

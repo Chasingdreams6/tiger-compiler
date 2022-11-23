@@ -72,6 +72,7 @@ public:
   X64Frame(temp::Label *name, std::list<bool> *formals);
   Access *AllocLocal(bool escape) override;
   int Size() override {return size_;}
+  int MaxArgs() override {return maxArgs;}
   std::list<frame::Access *> *Formals() const { return formals_; }
   std::string GetLabel() override { return name_->Name(); }
   tree::Stm *ProcEntryExit1(tree::Stm *stm);

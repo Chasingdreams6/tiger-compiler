@@ -331,10 +331,16 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list,
     used->Append(args->NthTemp(i));
     it++;
   }
-  for (; it != exp_list_.end(); it++) {
+  int spillcnt = 0;
+  for (; it != exp_list_.end(); it++) { // spill, put value to stack
+    std::string ins = "movq `s0, " +
+                      std::to_string(spillcnt * reg_manager->WordSize()) +
+                      "(`s1)";
     instr_list.Append(new assem::OperInstr(
-        "pushq `s0", nullptr, new temp::TempList((*it)->Munch(instr_list, fs)),
+        ins, nullptr,
+        new temp::TempList({(*it)->Munch(instr_list, fs), frame::RSP()}),
         nullptr));
+    spillcnt++;
   }
   return used;
 }
