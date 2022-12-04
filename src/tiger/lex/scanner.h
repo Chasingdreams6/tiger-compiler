@@ -5,6 +5,7 @@
 #include <cstdarg>
 #include <iostream>
 #include <string>
+#include <stack>
 
 #include "scannerbase.h"
 #include "tiger/errormsg/errormsg.h"
@@ -48,9 +49,10 @@ public:
 private:
   int comment_level_;
   std::string string_buf_;
+  std::string store_tmp;
   int char_pos_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
-
+  std::stack<StartCondition__> d_scStack;
   /**
    * NOTE: do not change all the funtion signature below, which is used by
    * flexc++ internally
@@ -58,15 +60,34 @@ private:
   int lex__();
   int executeAction__(size_t ruleNr);
 
+  void push(StartCondition__ );
+  void popStartCondition();
   void print();
   void preCode();
   void postCode(PostEnum__ type);
   void adjust();
   void adjustStr();
+  void adjustX(int );
+  void storeString(std::string);
+  std::string recoverString();
 };
 
 inline int Scanner::lex() { return lex__(); }
 
+inline void Scanner::storeString(std::string x) {store_tmp = x;}
+
+inline std::string Scanner::recoverString() {return store_tmp;}
+
+inline void Scanner::push(StartCondition__ next) {
+  //errormsg_->Error(errormsg_->tok_pos_, "push");
+  d_scStack.push(startCondition());
+  begin(next);
+}
+inline void Scanner::popStartCondition() {
+  //errormsg_->Error(errormsg_->tok_pos_, "pop");
+  begin(d_scStack.top());
+  d_scStack.pop();
+}
 inline void Scanner::preCode() {
   // Optionally replace by your own code
 }
@@ -82,6 +103,7 @@ inline void Scanner::adjust() {
   char_pos_ += length();
 }
 
+inline void Scanner::adjustX(int t) { char_pos_ += t; }
 inline void Scanner::adjustStr() { char_pos_ += length(); }
 
 #endif // TIGER_LEX_SCANNER_H_

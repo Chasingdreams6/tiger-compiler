@@ -41,6 +41,7 @@ int main(int argc, char **argv) {
       sem::ProgSem prog_sem(std::move(absyn_tree), std::move(errormsg));
       prog_sem.SemAnalyze();
       absyn_tree = prog_sem.TransferAbsynTree();
+      absyn_tree->Print(stdout);
       errormsg = prog_sem.TransferErrormsg();
     }
 
