@@ -178,8 +178,6 @@ private:
   std::list<Frag*> frags_;
 };
 
-//TODO shift of view ppt12-15
-//frame::Frame NewFrame(temp::Label *name, std::list<bool> formals) {}
 
 } // namespace frame
 
