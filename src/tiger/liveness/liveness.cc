@@ -44,6 +44,12 @@ MoveList *MoveList::Intersect(MoveList *list) {
   }
   return res;
 }
+void MoveList::clear() {
+  move_list_.clear();
+}
+bool MoveList::isDuplicate(std::pair<INodePtr, INodePtr> pair) {
+  return Contain(pair.first, pair.second) || Contain(pair.second, pair.first);
+}
 
 temp::TempList *list_union(temp::TempList *a, temp::TempList *b) {
   auto *res = new temp::TempList;

@@ -10,27 +10,7 @@
 namespace frame {
 class X64RegManager : public RegManager {
 public:
-//  temp::Temp *rax, *rbx, *rcx, *rdx;
-//  temp::Temp *rdi, *rsi, *rbp, *rsp;
-//  temp::Temp *r8, *r9, *r10, *r11;
-//  temp::Temp *r12, *r13, *r14, *r15;
   X64RegManager() : RegManager() {
-//    rax = temp::TempFactory::NewTemp();
-//    rbx = temp::TempFactory::NewTemp();
-//    rcx = temp::TempFactory::NewTemp();
-//    rdx = temp::TempFactory::NewTemp();
-//    rdi = temp::TempFactory::NewTemp();
-//    rsi = temp::TempFactory::NewTemp();
-//    rbp = temp::TempFactory::NewTemp();
-//    rsp = temp::TempFactory::NewTemp();
-//    r8  = temp::TempFactory::NewTemp();
-//    r9  = temp::TempFactory::NewTemp();
-//    r10 = temp::TempFactory::NewTemp();
-//    r11 = temp::TempFactory::NewTemp();
-//    r12 = temp::TempFactory::NewTemp();
-//    r13 = temp::TempFactory::NewTemp();
-//    r14 = temp::TempFactory::NewTemp();
-//    r15 = temp::TempFactory::NewTemp();
     this->temp_map_->Enter(RAX(), new std::string("%rax")); // 100
     this->temp_map_->Enter(RBX(), new std::string("%rbx")); // 101
     this->temp_map_->Enter(RCX(), new std::string("%rcx")); // 102
@@ -73,6 +53,9 @@ public:
   Access *AllocLocal(bool escape) override;
   int Size() override {return size_;}
   int MaxArgs() override {return maxArgs;}
+  std::string getFrameSizeStr() override {
+    return name_->Name() + "_framesize";
+  }
   std::list<frame::Access *> *Formals() const { return formals_; }
   std::string GetLabel() override { return name_->Name(); }
   tree::Stm *ProcEntryExit1(tree::Stm *stm);

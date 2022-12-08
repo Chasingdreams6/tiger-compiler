@@ -66,6 +66,11 @@ public:
   TempList() = default;
   void Append(Temp *t) { temp_list_.push_back(t); }
   void Insert(Temp *t) { temp_list_.push_front(t); }
+  void Change(int cnt, Temp *t) {
+    auto it = temp_list_.begin();
+    while (cnt--) it++;
+    *it = t;
+  }
   [[nodiscard]] Temp *NthTemp(int i) const;
   [[nodiscard]] const std::list<Temp *> &GetList() const { return temp_list_; }
 
