@@ -41,13 +41,6 @@ public:
 
 class X64Frame : public Frame {
 public:
-//  temp::Label *label_;
-//  int size_;
-//  std::list<frame::Access *> *formals_; // the locations of all the formals
-//  tree::Stm *viewShift;
-//  temp::TempList *calleeRegs; // remain regs for passing argument
-//  temp::TempList *returnSink;
-//  int usedRegs = 0;
   void ViewShift(tree::Stm *stm);
   X64Frame(temp::Label *name, std::list<bool> *formals);
   Access *AllocLocal(bool escape) override;
@@ -58,8 +51,8 @@ public:
   }
   std::list<frame::Access *> *Formals() const { return formals_; }
   std::string GetLabel() override { return name_->Name(); }
-  tree::Stm *ProcEntryExit1(tree::Stm *stm);
-  assem::InstrList *ProcEntryExit2(assem::InstrList *body);
+  tree::Stm *ProcEntryExit1(tree::Stm *stm) override;
+  assem::InstrList *ProcEntryExit2(assem::InstrList *body) override;
   //assem::Proc *ProcEntryExit3(assem::InstrList *il);
 };
 } // namespace frame

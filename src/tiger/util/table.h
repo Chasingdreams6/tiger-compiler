@@ -59,6 +59,7 @@ void Table<KeyType, ValueType>::Set(KeyType *key, ValueType *value) {
       b->value = value;
       return;
     }
+  Enter(key, value);
 }
 
 template <typename KeyType, typename ValueType>

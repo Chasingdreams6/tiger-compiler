@@ -73,6 +73,9 @@ public:
   void Print(FILE *out, temp::Map *m) const;
   void Append(assem::Instr *instr) { instr_list_.push_back(instr); }
   void Remove(assem::Instr *instr) { instr_list_.remove(instr); }
+  std::list<Instr*>::iterator Erase(std::list<Instr*>::iterator it) {
+    return instr_list_.erase(it);
+  }
   void InsertF(assem::Instr *instr) {instr_list_.push_front(instr);}
   void Insert(std::list<Instr *>::const_iterator pos, assem::Instr *instr) {
     instr_list_.insert(pos, instr);

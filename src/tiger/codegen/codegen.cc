@@ -22,7 +22,6 @@ void CodeGen::Codegen() {
        it != traces_->GetStmList()->GetList().end(); it++) {
     (*it)->Munch(*assem_instr_->GetInstrList(), fs_);
   }
-  // TODO may need this?
   frame_->ProcEntryExit2(assem_instr_->GetInstrList());
 }
 
@@ -255,6 +254,7 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     return r;
   } else if (typeid(*exp_) == typeid(tree::ConstExp)) {
     // TODO need R0 reg to store 0 forever'
+    assert(0);
     std::string ins =
         "movq " +
         std::to_string(dynamic_cast<tree::ConstExp *>(exp_)->consti_) +
@@ -298,7 +298,7 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::Temp *r = temp::TempFactory::NewTemp();
   std::string ins = "movq $" + std::to_string(consti_) + ", `d0";
   instr_list.Append(
-      new assem::MoveInstr(ins, new temp::TempList({r}), nullptr));
+      new assem::OperInstr(ins, new temp::TempList({r}), nullptr, nullptr));
   return r;
 }
 

@@ -25,7 +25,7 @@ public:
 private:
   assem::InstrList *instr_list_;
   FGraphPtr flowgraph_;
-  std::unique_ptr<tab::Table<temp::Label, FNode>> label_map_;
+  std::unique_ptr<tab::Table<temp::Label, FNode> > label_map_;
 };
 
 } // namespace fg

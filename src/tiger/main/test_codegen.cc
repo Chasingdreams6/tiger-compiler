@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
   {
     // Output assembly
     output::AssemGen assem_gen(fname);
+    TigerLog("before gen assem");
     assem_gen.GenAssem(false);
   }
 

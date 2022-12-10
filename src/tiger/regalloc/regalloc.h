@@ -102,7 +102,7 @@ private:
   std::map<temp::Temp *, std::set<temp::Temp *> > adjList;
   std::map<temp::Temp *, temp::Temp *> color;
 
-  live::MoveList *  frozenMoves;
+  live::MoveList * frozenMoves;
   live::MoveList * worklistMoves;
   live::MoveList * coalescedMoves;
   live::MoveList * constrainedMoves;
@@ -133,13 +133,14 @@ private:
   void freezeMoves(temp::Temp *x);
   void selectSpill();
   void assignColors();
-  void rewrite(fg::FGraphPtr, frame::Frame*, std::unique_ptr<cg::AssemInstr>);
-  temp::TempList *getDefs(assem::Instr *instr);
-  temp::TempList *getUses(assem::Instr *instr);
+  void rewrite();
+  //temp::TempList *getDefs(assem::Instr *instr);
+  //temp::TempList *getUses(assem::Instr *instr);
 public:
   std::unique_ptr<cg::AssemInstr> assem_instr_;
   frame::Frame *frame_;
   RegAllocator(frame::Frame *, std::unique_ptr<cg::AssemInstr>);
+  ~RegAllocator();
   void RegAlloc();
   std::unique_ptr<ra::Result> TransferResult();
 

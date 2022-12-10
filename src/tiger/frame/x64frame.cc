@@ -123,7 +123,7 @@ tree::Stm *X64Frame::ProcEntryExit1(tree::Stm *stm) {
 }
 assem::InstrList *X64Frame::ProcEntryExit2(assem::InstrList *body) {
   if (!returnSink) {
-    returnSink = new temp::TempList({RAX()});
+    returnSink = reg_manager->ReturnSink();
   }
   //  temp::TempList *calleeSaved = new temp::TempList(
   //      {frame::R12(), frame::R13(), frame::R14(), frame::R15()});
@@ -147,21 +147,9 @@ assem::InstrList *X64Frame::ProcEntryExit2(assem::InstrList *body) {
   body->Append(new assem::OperInstr("", nullptr, returnSink, nullptr));
   return body;
 }
-// assem::Proc *X64Frame::ProcEntryExit3(Frame *pFrame, assem::InstrList *il) {
-////  std::string frame_size =
-////      ".set " + temp::LabelFactory::LabelString(name_) + "_framesize,";
-////  std::string prolog = frame_size + std::to_string(size_) + "\n";
-//  prolog += temp::LabelFactory::LabelString(name_) + ":\n";
-//  prolog += "subq $" + std::to_string(size_) + ",%rsp\n";
-//
-//  std::string epilog = "addq $" + std::to_string(size_) + ",%rsp\n";
-//  epilog += "ret\n\n";
-//
-//  return new assem::Proc(prolog, il, epilog);
-//}
 
 temp::TempList *X64RegManager::Registers() {
-  return new temp::TempList({RAX(), RBX(), RCX(), RDX(), RSI(), RDI(), RBX(),
+  return new temp::TempList({RAX(), RBX(), RCX(), RDX(), RSI(), RDI(), RSP(),
                              FP(), R8(), R9(), R10(), R11(), R12(), R13(),
                              R14(), R15()});
 }
@@ -174,15 +162,13 @@ temp::TempList *X64RegManager::CallerSaves() {
 temp::TempList *X64RegManager::CalleeSaves() {
   return new temp::TempList({RBX(), FP(), R12(), R13(), R14(), R15()});
 }
-temp::TempList *X64RegManager::ReturnSink() { return nullptr; } // TODO
+temp::TempList *X64RegManager::ReturnSink() {
+  return new temp::TempList({RAX(), RSP(), RBX(), FP(), R12(), R13(), R14(), R15()});
+}
 int X64RegManager::WordSize() { return 8; }
 temp::Temp *X64RegManager::FramePointer() { return FP(); }
 temp::Temp *X64RegManager::StackPointer() { return RSP(); }
 temp::Temp *X64RegManager::ReturnValue() { return RAX(); }
 
-//
-// temp::Temp *RAX() {
-//  return
-//}
 
 } // namespace frame

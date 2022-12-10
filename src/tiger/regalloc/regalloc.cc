@@ -33,17 +33,22 @@ void RegAllocator::RegAlloc() {
   bool flag = false;
   while (!flag) {
     flag = true;
-    for (auto instr : il->GetList()) {
-      if (typeid(instr) == typeid(assem::MoveInstr *) &&
+    for (auto instr_it : il->GetList()) {
+      if (typeid(*instr_it) == typeid(assem::MoveInstr) &&
           !coloring
-               ->Look(static_cast<assem::MoveInstr *>(instr)->dst_->NthTemp(0))
+               ->Look(static_cast<assem::MoveInstr *>(instr_it)->dst_->NthTemp(0))
                ->compare(*coloring->Look(
-                   static_cast<assem::MoveInstr *>(instr)->src_->NthTemp(0)))) {
-        assem_instr_->GetInstrList()->Remove(instr);
+                   static_cast<assem::MoveInstr *>(instr_it)->src_->NthTemp(0)))) {
+        assem_instr_->GetInstrList()->Remove(instr_it);
         flag = false;
+        break;
+        //assem_instr_->GetInstrList()->Erase(instr_it);
       }
     }
   }
+  // output Mapping
+  //coloring->DumpMap(stdout);
+
   result->coloring_ = coloring;
   result->il_ = assem_instr_->GetInstrList();
 }
@@ -51,7 +56,7 @@ void RegAllocator::RegAlloc() {
 std::unique_ptr<ra::Result> RegAllocator::TransferResult() {
     return std::move(result);
 }
-// precolored regs
+// all can used colors
 std::set<temp::Temp *> RegAllocator::getColors() {
   auto regsList = reg_manager->Registers();
   static std::set<temp::Temp *> *colors = nullptr;
@@ -111,22 +116,36 @@ void RegAllocator::mainFlow() {
   }
   assignColors();
   if (!spilledNodes.empty()) {
-    rewrite(flowgraph, frame_, std::move(assem_instr_));
+    printf("SpillCnt:%lu\n", spilledNodes.size());
+    rewrite();
     initWorkList();
     mainFlow();
   }
 }
 void RegAllocator::build(live::LiveGraph *liveGraph, assem::InstrList *il) {
-  auto m = liveGraph->moves->GetList().front();
+  auto it = liveGraph->moves->GetList().begin();
   auto nodes = liveGraph->interf_graph->Nodes();
-  auto src = m.first->NodeInfo();
-  auto dst = m.second->NodeInfo();
-  if (!worklistMoves->isDuplicate(m))
-    worklistMoves->Append(m.first, m.second);
-  if (!moveList[src]->isDuplicate(m))
-    moveList[src]->Append(m.first, m.second);
-  if (!moveList[dst]->isDuplicate(m))
-    moveList[dst]->Append(m.first, m.second);
+  while (it != liveGraph->moves->GetList().end()) {
+    auto m = *it;
+    auto src = m.first->NodeInfo();
+    auto dst = m.second->NodeInfo();
+    assert(src);
+    assert(dst);
+    if (!moveList[src]) {
+      moveList[src] = new live::MoveList;
+    }
+    if (!moveList[dst]) {
+      moveList[dst] = new live::MoveList;
+    }
+    if (!worklistMoves->isDuplicate(m))
+      worklistMoves->Append(m.first, m.second);
+    if (!moveList[src]->isDuplicate(m))
+      moveList[src]->Append(m.first, m.second);
+    if (!moveList[dst]->isDuplicate(m))
+      moveList[dst]->Append(m.first, m.second);
+    it++; // TODO
+  }
+
   for (auto node : nodes->GetList()) {
     auto adjs = node->Adj();
     for (auto adj : adjs->GetList()) {
@@ -170,6 +189,7 @@ void RegAllocator::makeWorkList() {
 }
 
 live::MoveList *RegAllocator::nodeMoves(temp::Temp *x) {
+  if (!moveList[x]) moveList[x] = new live::MoveList;
   return moveList[x]->Intersect(activeMoves->Union(worklistMoves));
 }
 
@@ -282,6 +302,7 @@ void RegAllocator::combine(temp::Temp *x, temp::Temp *y) {
   }
   coalescedNodes.insert(y);
   alias[y] = x;
+  if (!moveList[x]) {moveList[x] = new live::MoveList;}
   moveList[x]->Union(moveList[y]);
   std::set<temp::Temp *> tmp;
   tmp.insert(y);
@@ -361,51 +382,58 @@ void RegAllocator::assignColors() {
     selectStack.pop_back();
     if (selectStackSet.find(n) != selectStackSet.end())
       selectStackSet.erase(n);
-    auto preColoreds = getColors();
+    auto canUseColors = getColors();
     auto adjs = adjList[n];
     for (auto adj : adjs) {
       auto tmp = set_union(coloredNodes, precolored);
       if (tmp.find(getAlias(adj)) != tmp.end()) {
-        preColoreds.erase(color[getAlias(adj)]);
+        canUseColors.erase(color[getAlias(adj)]);
       }
     }
-    if (preColoreds.empty()) {
+    if (canUseColors.empty()) {
       spilledNodes.insert(n);
     } else {
       coloredNodes.insert(n);
-      auto c = preColoreds.begin();
-      color[n] = *c;
+      auto c = *(canUseColors.begin());
+      for (auto candidate : canUseColors) {
+        if (candidate->Int() == n->Int()) {
+          c = candidate;
+          break;
+        }
+      }
+      color[n] = c;
     }
   }
   for (auto node : coalescedNodes) {
     color[node] = color[getAlias(node)];
   }
 }
-void RegAllocator::rewrite(fg::FGraphPtr flowgraph, frame::Frame *f,
-                           std::unique_ptr<cg::AssemInstr> assemInstr) {
-  auto il = assemInstr->GetInstrList();
+void RegAllocator::rewrite() {
   std::map<temp::Temp *, int> allocations;
+  if (spilledNodes.empty()) return;
   for (auto node : spilledNodes) {
-    f->AllocLocal(true);
-    allocations[node] = f->Size();
+    frame_->AllocLocal(true);
+    allocations[node] = frame_->Size();
+    printf("spill t%d, on stack %d\n", node->Int(), frame_->Size());
   }
-  std::string store = "\tmovq\t`s0, (%s - %d)(%%rsp)";
-  std::string load = "\tmovq\t(%s - %d)(%%rsp), `d0";
-  auto i = il->GetList().begin();
-  while (i != il->GetList().end()) {
-    auto def = getDefs(*i);
-    auto use = getUses(*i);
+  std::string store = "movq `s0, (%s - %d)(%%rsp)";
+  std::string load = "movq (%s - %d)(%%rsp), `d0";
+  auto i = assem_instr_->GetInstrList()->GetList().begin();
+  auto oldi = i;
+  while (i != assem_instr_->GetInstrList()->GetList().end()) {
+    auto def = (*i)->Def();
+    auto use = (*i)->Use();
     int cnt = 0;
     for (auto def_it = def->GetList().begin(); def_it != def->GetList().end();
          def_it++, cnt++) {
       if (allocations[*def_it]) {
         temp::Temp *t = temp::TempFactory::NewTemp();
-        char ins[256];
-        sprintf(ins, store.c_str(), f->getFrameSizeStr().c_str(),
+        char ins[128];
+        sprintf(ins, store.c_str(), frame_->getFrameSizeStr().c_str(),
                 allocations[*def_it]);
         assem::OperInstr *instr = new assem::OperInstr(
             ins, nullptr, new temp::TempList({t, frame::RSP()}), nullptr);
-        il->Insert(++i, instr); // insert after i
+        assem_instr_->GetInstrList()->Insert(++i, instr); // insert after i
         def->Change(cnt, t);
       }
     }
@@ -414,35 +442,30 @@ void RegAllocator::rewrite(fg::FGraphPtr flowgraph, frame::Frame *f,
          use_it++, cnt++) {
       if (allocations[*use_it]) {
         temp::Temp *t = temp::TempFactory::NewTemp();
-        char ins[256];
-        sprintf(ins, load.c_str(), f->getFrameSizeStr().c_str(),
+        char ins[128];
+        sprintf(ins, load.c_str(), frame_->getFrameSizeStr().c_str(),
                 allocations[*use_it]);
         assem::OperInstr *instr =
             new assem::OperInstr(ins, new temp::TempList({t}),
                                  new temp::TempList({frame::RSP()}), nullptr);
         // assert(prev != std::nullopt_t);
-        il->Insert(i, instr); // insert before i
+        assem_instr_->GetInstrList()->Insert(oldi, instr); // insert before i
         use->Change(cnt, t);
       }
     }
     i++;
+    oldi = i;
   }
 }
-temp::TempList *RegAllocator::getDefs(assem::Instr *instr) {
-  if (typeid(instr) == typeid(assem::LabelInstr *))
-    return nullptr;
-  else if (typeid(instr) == typeid(assem::MoveInstr *)) {
-    return static_cast<assem::MoveInstr *>(instr)->dst_;
-  } else
-    return static_cast<assem::MoveInstr *>(instr)->dst_;
-}
-temp::TempList *RegAllocator::getUses(assem::Instr *instr) {
-  if (typeid(instr) == typeid(assem::LabelInstr *))
-    return nullptr;
-  else if (typeid(instr) == typeid(assem::MoveInstr *)) {
-    return static_cast<assem::MoveInstr *>(instr)->src_;
-  } else
-    return static_cast<assem::MoveInstr *>(instr)->src_;
+RegAllocator::~RegAllocator() {
+  delete frozenMoves;
+  delete worklistMoves;
+  delete coalescedMoves;
+  delete constrainedMoves;
+  delete activeMoves;
+  for(auto it : moveList) {
+    delete (it.second);
+  }
 }
 
 Result::~Result() {

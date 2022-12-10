@@ -54,14 +54,18 @@ bool MoveList::isDuplicate(std::pair<INodePtr, INodePtr> pair) {
 temp::TempList *list_union(temp::TempList *a, temp::TempList *b) {
   auto *res = new temp::TempList;
   std::set<temp::Temp *> used;
-  for (auto ai : a->GetList()) {
-    res->Append(ai);
-    used.insert(ai);
+  if (a != nullptr) {
+    for (auto ai : a->GetList()) {
+      res->Append(ai);
+      used.insert(ai);
+    }
   }
-  for (auto bi : b->GetList()) {
-    if (!used.count(bi)) {
-      res->Append(bi);
-      used.insert(bi);
+  if (b != nullptr) {
+    for (auto bi : b->GetList()) {
+      if (!used.count(bi)) {
+        res->Append(bi);
+        used.insert(bi);
+      }
     }
   }
   return res;
@@ -69,23 +73,28 @@ temp::TempList *list_union(temp::TempList *a, temp::TempList *b) {
 //  a - b
 temp::TempList *list_difference(temp::TempList *a, temp::TempList *b) {
   auto *res = new temp::TempList;
-  for (auto ai : a->GetList()) {
-    bool flag = true;
-    for (auto bi : b->GetList()) {
-      if (ai == bi) {
-        flag = false;
-        break;
+  if (a != nullptr) {
+    for (auto ai : a->GetList()) {
+      bool flag = true;
+      if (b != nullptr) {
+        for (auto bi : b->GetList()) {
+          if (ai == bi) {
+            flag = false;
+            break;
+          }
+        }
       }
+      if (flag)
+        res->Append(ai);
     }
-    if (flag)
-      res->Append(ai);
   }
   return res;
 }
 
 INodePtr newNode(IGraphPtr g, temp::Temp *t, tab::Table<temp::Temp, INode> *m) {
   if (m->Look(t) == nullptr) {
-    m->Set(t, g->NewNode(t));
+    m->Enter(t, g->NewNode(t));
+    //m->Set(t, g->NewNode(t));
   }
   return m->Look(t);
 }
@@ -93,16 +102,25 @@ INodePtr newNode(IGraphPtr g, temp::Temp *t, tab::Table<temp::Temp, INode> *m) {
 void LiveGraphFactory::LiveMap() {
   /* TODO: Put your lab6 code here */
   auto nodelist = flowgraph_->Nodes();
+  if (nodelist != nullptr) {
+    for (auto node : nodelist->GetList()) {
+      in_->Enter(node, new temp::TempList);
+      out_->Enter(node, new temp::TempList);
+    }
+  }
   bool finished = false;
   while (!finished) {
     finished = true;
+    if (!nodelist) continue;
     for (auto nl : nodelist->GetList()) {
       int old_inSize = in_->Look(nl)->GetList().size();
       int old_outSize = out_->Look(nl)->GetList().size();
       auto use = nl->NodeInfo()->Use();
-      auto def = nl->NodeInfo()->Use();
+      auto def = nl->NodeInfo()->Def();
       auto succs = nl->Succ();
       // TODO
+      out_->Set(nl, new temp::TempList); // clear
+      if (succs != nullptr)
       for (auto succ : succs->GetList()) {
         out_->Set(nl, list_union(out_->Look(nl), in_->Look(succ)));
       }
@@ -116,31 +134,38 @@ void LiveGraphFactory::LiveMap() {
 
   auto allocated_regs = reg_manager->Registers();
 
-  for (auto x : allocated_regs->GetList()) {
-    for (auto y : allocated_regs->GetList()) {
+  // directed or undirected ?
+  int size = allocated_regs->GetList().size();
+  for (int i = 0; i < size; ++i) {
+    for (int j = i + 1; j < size; ++j) {
+      auto x = allocated_regs->NthTemp(i), y = allocated_regs->NthTemp(j);
       auto m = newNode(live_graph_.interf_graph, x, temp_node_map_);
       auto n = newNode(live_graph_.interf_graph, y, temp_node_map_);
       live_graph_.interf_graph->AddEdge(m, n);
     }
   }
+
 }
 
 void LiveGraphFactory::InterfGraph() { /* TODO: Put your lab6 code here */
   auto nodelist = flowgraph_->Nodes();
+  if (!nodelist) return;
   for (auto nl : nodelist->GetList()) {
     auto def = nl->NodeInfo()->Def();
     int defi = 0;
-    if (typeid(nl->NodeInfo()) == typeid(assem::MoveInstr *)) {
+    if (typeid(*(nl->NodeInfo())) == typeid(assem::MoveInstr)) {
       auto use = nl->NodeInfo()->Use();
       int usei = 0;
       auto outs = out_->Look(nl);
-      for (auto out : outs->GetList()) {
-        if (out != use->NthTemp(usei)) {
-          auto m = newNode(live_graph_.interf_graph, def->NthTemp(defi),
-                           temp_node_map_);
-          auto n = newNode(live_graph_.interf_graph, out, temp_node_map_);
-          if (m != n)
-            live_graph_.interf_graph->AddEdge(m, n);
+      if (outs != nullptr) {
+        for (auto out : outs->GetList()) {
+          if (out != use->NthTemp(usei)) {
+            auto m = newNode(live_graph_.interf_graph, def->NthTemp(defi),
+                             temp_node_map_);
+            auto n = newNode(live_graph_.interf_graph, out, temp_node_map_);
+            if (m != n)
+              live_graph_.interf_graph->AddEdge(m, n);
+          }
         }
       }
       live_graph_.moves->Append(
@@ -148,17 +173,36 @@ void LiveGraphFactory::InterfGraph() { /* TODO: Put your lab6 code here */
           newNode(live_graph_.interf_graph, use->NthTemp(usei),
                   temp_node_map_));
     } else {
-      while (defi < def->GetList().size()) {
-        auto outs = out_->Look(nl);
-        for (auto out : outs->GetList()) {
-          auto m = newNode(live_graph_.interf_graph, def->NthTemp(defi), temp_node_map_);
-          auto n = newNode(live_graph_.interf_graph, out, temp_node_map_);
-          if (m != n) live_graph_.interf_graph->AddEdge(m, n);
+      if (def != nullptr) {
+        while (defi < def->GetList().size()) {
+          auto outs = out_->Look(nl);
+          for (auto out : outs->GetList()) {
+            auto m = newNode(live_graph_.interf_graph, def->NthTemp(defi),
+                             temp_node_map_);
+            auto n = newNode(live_graph_.interf_graph, out, temp_node_map_);
+            if (m != n)
+              live_graph_.interf_graph->AddEdge(m, n);
+          }
+          defi++;
         }
-        defi++;
       }
     }
   }
+
+   //output the intergraph
+  auto nodes = live_graph_.interf_graph->Nodes();
+  if (nodes) {
+    for (auto node : nodes->GetList()) {
+      auto succs = node->Succ();
+      printf("--From node:%d--\n", node->NodeInfo()->Int());
+      if (succs) {
+        for (auto succ : succs->GetList()) {
+          printf("%d---%d\n", node->NodeInfo()->Int(), succ->NodeInfo()->Int());
+        }
+      }
+    }
+  }
+
 }
 
 void LiveGraphFactory::Liveness() {
