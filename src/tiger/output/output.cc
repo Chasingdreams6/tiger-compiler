@@ -54,7 +54,7 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     return;
 
   TigerLog("-------====IR tree=====-----\n");
-  TigerLog(body_);
+  //TigerLog(body_);
 
   {
     // Canonicalize
@@ -64,17 +64,17 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     // Linearize to generate canonical trees
     TigerLog("-------====Linearlize=====-----\n");
     tree::StmList *stm_linearized = canon.Linearize();
-    TigerLog(stm_linearized);
+    //TigerLog(stm_linearized);
 
     // Group list into basic blocks
     TigerLog("------====Basic block_=====-------\n");
     canon::StmListList *stm_lists = canon.BasicBlocks();
-    TigerLog(stm_lists);
+    //TigerLog(stm_lists);
 
     // Order basic blocks into traces_
     TigerLog("-------====Trace=====-----\n");
     tree::StmList *stm_traces = canon.TraceSchedule();
-    TigerLog(stm_traces);
+    //TigerLog(stm_traces);
 
     traces = canon.TransferTraces();
   }

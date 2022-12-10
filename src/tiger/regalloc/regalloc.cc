@@ -433,7 +433,9 @@ void RegAllocator::rewrite() {
                 allocations[*def_it]);
         assem::OperInstr *instr = new assem::OperInstr(
             ins, nullptr, new temp::TempList({t, frame::RSP()}), nullptr);
+        printf("new: %s\n", ins);
         assem_instr_->GetInstrList()->Insert(++i, instr); // insert after i
+        i--; // restore
         def->Change(cnt, t);
       }
     }
@@ -449,6 +451,7 @@ void RegAllocator::rewrite() {
             new assem::OperInstr(ins, new temp::TempList({t}),
                                  new temp::TempList({frame::RSP()}), nullptr);
         // assert(prev != std::nullopt_t);
+        printf("new: %s\n", ins);
         assem_instr_->GetInstrList()->Insert(oldi, instr); // insert before i
         use->Change(cnt, t);
       }

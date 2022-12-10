@@ -36,7 +36,7 @@ void FlowGraphFactory::AssemFlowGraph() {
 
     if (typeid(*cur) == typeid(assem::OperInstr)) {
       auto opi = static_cast<assem::OperInstr *>(cur);
-      if (opi->jumps_) {
+      if (opi->jumps_ && opi->jumps_->labels_) {
         auto labels = opi->jumps_->labels_;
         for (auto label : (*labels)) {
           assert(label_map_->Look(label));

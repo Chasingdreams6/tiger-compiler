@@ -131,6 +131,7 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
           nullptr));
     } else if (typeid(*e1->exp_) == typeid(tree::ConstExp)) {
       // case MOVE( MEM( CONST() ), e2 )
+      assert(0);
       std::string ins =
           "movq `s0, " +
           std::to_string(dynamic_cast<tree::ConstExp *>(e1->exp_)->consti_) +
@@ -215,7 +216,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
                                          new temp::TempList({lv})));
   instr_list.Append(new assem::OperInstr(ins + " `s0, `d0",
                                          new temp::TempList({frame::RAX()}),
-                                         new temp::TempList({rv}), nullptr));
+                                         new temp::TempList({rv, frame::RAX()}), nullptr));
   instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
                                          new temp::TempList({r}),
                                          new temp::TempList({frame::RAX()})));
@@ -246,7 +247,7 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       temp::Temp *lv = e1->left_->Munch(instr_list, fs);
       instr_list.Append(new assem::OperInstr(
           "addq `s0, `d0", new temp::TempList({lv}),
-          new temp::TempList({e1->right_->Munch(instr_list, fs)}), nullptr));
+          new temp::TempList({e1->right_->Munch(instr_list, fs), lv}), nullptr));
       instr_list.Append(
           new assem::OperInstr("movq (`s0), `d0", new temp::TempList({r}),
                                new temp::TempList({lv}), nullptr));
@@ -275,7 +276,7 @@ temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     temp::Temp *r = temp::TempFactory::NewTemp();
     std::string ins = "leaq " + std::string(fs) + "(%rsp), `d0";
     instr_list.Append(
-        new assem::OperInstr(ins, new temp::TempList({r}), nullptr, nullptr));
+        new assem::OperInstr(ins, new temp::TempList({r}), new temp::TempList{frame::RSP()}, nullptr));
     return r;
   }
   return temp_;
@@ -309,7 +310,7 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   instr_list.Append(new assem::OperInstr(
       "callq " + name->name_->Name(),
       new temp::TempList(
-          {frame::RAX(), frame::RBX(), frame::R10(), frame::R11(), frame::RDI(),
+          {frame::RAX(), frame::R10(), frame::R11(), frame::RDI(),
            frame::RSI(), frame::RCX(), frame::RDX(), frame::R8(), frame::R9()}),
       args, nullptr));
   return r;

@@ -125,8 +125,6 @@ assem::InstrList *X64Frame::ProcEntryExit2(assem::InstrList *body) {
   if (!returnSink) {
     returnSink = reg_manager->ReturnSink();
   }
-  //  temp::TempList *calleeSaved = new temp::TempList(
-  //      {frame::R12(), frame::R13(), frame::R14(), frame::R15()});
   temp::TempList *calleeSaved = reg_manager->CalleeSaves();
   temp::TempList *calleeSaveRestore =
       new temp::TempList({temp::TempFactory::NewTemp()});

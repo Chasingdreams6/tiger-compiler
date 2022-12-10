@@ -99,6 +99,30 @@ INodePtr newNode(IGraphPtr g, temp::Temp *t, tab::Table<temp::Temp, INode> *m) {
   return m->Look(t);
 }
 
+temp::TempList* copy_list(temp::TempList *ori) {
+  auto* res = new temp::TempList;
+  if (!ori) return res;
+  for (auto item : ori->GetList()) {
+    res->Append(item);
+  }
+  return res;
+}
+bool equal_list(temp::TempList *a, temp::TempList *b) {
+  if (!a || !b) return false;
+  if (a->GetList().size() != b->GetList().size()) return false;
+  for (auto item : a->GetList()) {
+    bool flag = false;
+    for (auto item1 : b->GetList()) {
+      if (item1->Int() == item->Int()) {
+        flag = true;
+        break;
+      }
+    }
+    if (!flag) return false;
+  }
+  return true;
+}
+
 void LiveGraphFactory::LiveMap() {
   /* TODO: Put your lab6 code here */
   auto nodelist = flowgraph_->Nodes();
@@ -113,22 +137,24 @@ void LiveGraphFactory::LiveMap() {
     finished = true;
     if (!nodelist) continue;
     for (auto nl : nodelist->GetList()) {
-      int old_inSize = in_->Look(nl)->GetList().size();
-      int old_outSize = out_->Look(nl)->GetList().size();
+      auto old_inList = copy_list(in_->Look(nl));
+      auto old_outList = copy_list(out_->Look(nl));
       auto use = nl->NodeInfo()->Use();
       auto def = nl->NodeInfo()->Def();
       auto succs = nl->Succ();
       // TODO
       out_->Set(nl, new temp::TempList); // clear
-      if (succs != nullptr)
-      for (auto succ : succs->GetList()) {
-        out_->Set(nl, list_union(out_->Look(nl), in_->Look(succ)));
+      if (succs != nullptr) {
+        for (auto succ : succs->GetList()) {
+          out_->Set(nl, list_union(out_->Look(nl), in_->Look(succ)));
+        }
       }
       in_->Set(nl, list_union(use, list_difference(out_->Look(nl), def)));
-      if (old_inSize != in_->Look(nl)->GetList().size() ||
-          old_outSize != out_->Look(nl)->GetList().size()) {
+      if (!equal_list(old_inList, in_->Look(nl)) || !equal_list(old_outList, out_->Look(nl))) {
         finished = false;
       }
+      delete old_outList;
+      delete old_inList;
     }
   }
 
@@ -169,8 +195,8 @@ void LiveGraphFactory::InterfGraph() { /* TODO: Put your lab6 code here */
         }
       }
       live_graph_.moves->Append(
-          newNode(live_graph_.interf_graph, def->NthTemp(defi), temp_node_map_),
-          newNode(live_graph_.interf_graph, use->NthTemp(usei),
+          newNode(live_graph_.interf_graph, use->NthTemp(usei), temp_node_map_),
+          newNode(live_graph_.interf_graph, def->NthTemp(defi),
                   temp_node_map_));
     } else {
       if (def != nullptr) {
@@ -193,11 +219,12 @@ void LiveGraphFactory::InterfGraph() { /* TODO: Put your lab6 code here */
   auto nodes = live_graph_.interf_graph->Nodes();
   if (nodes) {
     for (auto node : nodes->GetList()) {
-      auto succs = node->Succ();
+      auto succs = node->Adj();
       printf("--From node:%d--\n", node->NodeInfo()->Int());
       if (succs) {
         for (auto succ : succs->GetList()) {
-          printf("%d---%d\n", node->NodeInfo()->Int(), succ->NodeInfo()->Int());
+          if (succ->NodeInfo()->Int() > 115 && node->NodeInfo()->Int() > 115)
+            printf("%d---%d\n", node->NodeInfo()->Int(), succ->NodeInfo()->Int());
         }
       }
     }
