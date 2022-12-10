@@ -78,7 +78,7 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
                            new assem::Targets(nullptr)));
   instr_list.Append(new assem::OperInstr(
       ins, nullptr, nullptr,
-      new assem::Targets(new std::vector<temp::Label *>{true_label_})));
+      new assem::Targets(new std::vector<temp::Label *>{true_label_, false_label_})));
 }
 
 void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
