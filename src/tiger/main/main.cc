@@ -11,6 +11,7 @@ frame::RegManager *reg_manager;
 frame::Frags *frags;
 
 int main(int argc, char **argv) {
+  //TigerLog("Start");
   std::string_view fname;
   std::unique_ptr<absyn::AbsynTree> absyn_tree;
   reg_manager = new frame::X64RegManager();

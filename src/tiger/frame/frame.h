@@ -10,8 +10,29 @@
 #include "tiger/codegen/assem.h"
 
 
+
 namespace frame {
 
+#define REGDEF { static temp::Temp *t = nullptr; if(!t) t = temp::TempFactory::NewTemp(); return t;}
+    inline temp::Temp* RAX() REGDEF
+    inline temp::Temp* RBX() REGDEF
+    inline temp::Temp* RCX() REGDEF
+    inline temp::Temp* RDX() REGDEF
+    inline temp::Temp* R8() REGDEF
+    inline temp::Temp* R9() REGDEF
+    inline temp::Temp* R10() REGDEF
+    inline temp::Temp* R11() REGDEF
+    inline temp::Temp* R12() REGDEF
+    inline temp::Temp* R13() REGDEF
+    inline temp::Temp* R14() REGDEF
+    inline temp::Temp* R15() REGDEF
+    inline temp::Temp* RSP() REGDEF
+    inline temp::Temp* FP() REGDEF
+    inline temp::Temp* RDI() REGDEF
+    inline temp::Temp* RSI() REGDEF
+
+    //temp::TempList* CalleeSaves();
+    //inline temp::TempList* callee
 class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
@@ -71,13 +92,40 @@ protected:
 class Access {
 public:
   /* TODO: Put your lab5 code here */
-  
   virtual ~Access() = default;
-  
+  virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
 };
 
+/*
+ * 1. The locations of all the formals
+   2. Instructions required to implement the “view shift”
+   3. The number of locals allocated so far
+   4. And the label at which the function’s machine code is to begin
+ * */
 class Frame {
   /* TODO: Put your lab5 code here */
+public:
+
+  temp::Label *name_;
+  int size_;
+  int maxArgs = 0;
+  std::list<frame::Access *> *formals_; // the locations of all the formals
+  tree::Stm *viewShift;
+  //std::vector<tree::Stm*> viewShift;
+  temp::TempList *calleeRegs; // remain regs for passing argument
+  temp::TempList *returnSink;
+  int usedRegs = 0;
+
+  virtual Access* AllocLocal(bool escape) = 0;
+  virtual std::list<frame::Access*>* Formals() const = 0;
+  virtual int Size() = 0;
+  virtual int MaxArgs() = 0;
+  //static Frame* NewFrame(temp::Label *name, std::list<bool> formals);
+  virtual std::string getFrameSizeStr() = 0;
+  virtual std::string GetLabel() = 0;
+  virtual tree::Stm* ProcEntryExit1(tree::Stm* stm) = 0;
+  virtual assem::InstrList* ProcEntryExit2(assem::InstrList* body) = 0;
+  //virtual assem::Proc* ProcEntryExit3(Frame *pFrame, assem::InstrList* il) = 0;
 };
 
 /**
@@ -131,7 +179,6 @@ private:
   std::list<Frag*> frags_;
 };
 
-/* TODO: Put your lab5 code here */
 
 } // namespace frame
 

@@ -25,8 +25,10 @@ public:
     return move_list_;
   }
   void Append(INodePtr src, INodePtr dst) { move_list_.emplace_back(src, dst); }
+  bool isDuplicate(std::pair<INodePtr, INodePtr> pair);
   bool Contain(INodePtr src, INodePtr dst);
   void Delete(INodePtr src, INodePtr dst);
+  void clear();
   void Prepend(INodePtr src, INodePtr dst) {
     move_list_.emplace_front(src, dst);
   }
@@ -53,15 +55,15 @@ public:
         out_(std::make_unique<graph::Table<assem::Instr, temp::TempList>>()),
         temp_node_map_(new tab::Table<temp::Temp, INode>()) {}
   void Liveness();
-  LiveGraph GetLiveGraph() { return live_graph_; }
+  LiveGraph* GetLiveGraph() { return &live_graph_; }
   tab::Table<temp::Temp, INode> *GetTempNodeMap() { return temp_node_map_; }
 
 private:
   fg::FGraphPtr flowgraph_;
   LiveGraph live_graph_;
 
-  std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> in_;
-  std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> out_;
+  std::unique_ptr<graph::Table<assem::Instr, temp::TempList> > in_;
+  std::unique_ptr<graph::Table<assem::Instr, temp::TempList> > out_;
   tab::Table<temp::Temp, INode> *temp_node_map_;
 
   void LiveMap();

@@ -14,6 +14,7 @@ void AssemGen::GenAssem(bool need_ra) {
   // Output proc
   phase = frame::Frag::Proc;
   fprintf(out_, ".text\n");
+  assert(frags);
   for (auto &&frag : frags->GetList())
     frag->OutputAssem(out_, phase, need_ra);
 
@@ -28,6 +29,21 @@ void AssemGen::GenAssem(bool need_ra) {
 
 namespace frame {
 
+assem::Proc *ProcEntryExit3(Frame *pFrame, assem::InstrList *pList) {
+  std::string prolog, epilog;
+  int spill_size = std::max(pFrame->MaxArgs() - 6, 0) * reg_manager->WordSize();
+  int stack_size = spill_size + pFrame->Size();
+  std::string frame_size =
+      ".set " + temp::LabelFactory::LabelString(pFrame->name_) + "_framesize, ";
+  prolog = frame_size + std::to_string(stack_size) + "\n";
+  prolog += temp::LabelFactory::LabelString(pFrame->name_) + ":\n";
+  prolog += "subq $" + std::to_string(stack_size) + ", %rsp\n";
+
+  epilog = "addq $" + std::to_string(stack_size) + ", %rsp\n";
+  epilog += "retq\n";
+  return new assem::Proc(prolog, pList, epilog);
+}
+
 void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   std::unique_ptr<canon::Traces> traces;
   std::unique_ptr<cg::AssemInstr> assem_instr;
@@ -38,7 +54,7 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     return;
 
   TigerLog("-------====IR tree=====-----\n");
-  TigerLog(body_);
+  //TigerLog(body_);
 
   {
     // Canonicalize
@@ -48,22 +64,23 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
     // Linearize to generate canonical trees
     TigerLog("-------====Linearlize=====-----\n");
     tree::StmList *stm_linearized = canon.Linearize();
-    TigerLog(stm_linearized);
+    //TigerLog(stm_linearized);
 
     // Group list into basic blocks
     TigerLog("------====Basic block_=====-------\n");
     canon::StmListList *stm_lists = canon.BasicBlocks();
-    TigerLog(stm_lists);
+    //TigerLog(stm_lists);
 
     // Order basic blocks into traces_
     TigerLog("-------====Trace=====-----\n");
     tree::StmList *stm_traces = canon.TraceSchedule();
-    TigerLog(stm_traces);
+    //TigerLog(stm_traces);
 
     traces = canon.TransferTraces();
   }
 
-  temp::Map *color = temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
+  temp::Map *color =
+      temp::Map::LayerMap(reg_manager->temp_map_, temp::Map::Name());
   {
     // Lab 5: code generation
     TigerLog("-------====Code generate=====-----\n");
@@ -89,7 +106,7 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
            frame_->name_->Name().data());
 
   assem::Proc *proc = frame::ProcEntryExit3(frame_, il);
-  
+
   std::string proc_name = frame_->GetLabel();
 
   fprintf(out, ".globl %s\n", proc_name.data());
