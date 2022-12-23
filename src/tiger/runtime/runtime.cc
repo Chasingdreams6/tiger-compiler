@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 // Note: change to header file of your implemnted heap!
-#include "../runtime/gc/heap/heap.h"
+//#include "../runtime/gc/heap/heap.h"
+#include "../runtime/gc/heap/derived_heap.h"
 
 #ifndef EXTERNC
 #define EXTERNC extern "C" 
@@ -100,6 +101,7 @@ int main() {
   }
   // Change it to your own implementation after implement heap and delete the comment!
   // tiger_heap = new gc::TigerHeap();
+  tiger_heap = new gc::DerivedHeap();
   tiger_heap->Initialize(TIGER_HEAP_SIZE);
   return tigermain(0 /* static link */);
 }

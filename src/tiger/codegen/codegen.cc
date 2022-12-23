@@ -188,10 +188,10 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
                                            new temp::TempList({lv})));
     instr_list.Append(new assem::OperInstr(
         "cqto", new temp::TempList({frame::RDX(), frame::RAX()}),
-        new temp::TempList({frame::RDX()}), nullptr));
+        new temp::TempList({frame::RAX()}), nullptr));
     instr_list.Append(new assem::OperInstr(
         "imulq `s0", new temp::TempList({frame::RDX(), frame::RAX()}),
-        new temp::TempList({rv, frame::RAX(), frame::RDX()}), nullptr));
+        new temp::TempList({rv, frame::RAX()}), nullptr));
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
                                            new temp::TempList({r}),
                                            new temp::TempList({frame::RAX()})));
@@ -202,7 +202,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
                                            new temp::TempList({lv})));
     instr_list.Append(new assem::OperInstr(
         "cqto", new temp::TempList({frame::RDX(), frame::RAX()}),
-        new temp::TempList({frame::RDX()}), nullptr));
+        new temp::TempList({frame::RAX()}), nullptr));
     instr_list.Append(new assem::OperInstr(
         "idivq `s0", new temp::TempList({frame::RDX(), frame::RAX()}),
         new temp::TempList({rv, frame::RAX(), frame::RDX()}), nullptr));
@@ -212,14 +212,14 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     return r;
   }
   instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
-                                         new temp::TempList({frame::RAX()}),
+                                         new temp::TempList({r}),
                                          new temp::TempList({lv})));
   instr_list.Append(new assem::OperInstr(ins + " `s0, `d0",
-                                         new temp::TempList({frame::RAX()}),
-                                         new temp::TempList({rv, frame::RAX()}), nullptr));
-  instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
                                          new temp::TempList({r}),
-                                         new temp::TempList({frame::RAX()})));
+                                         new temp::TempList({rv, r}), nullptr));
+//  instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
+//                                         new temp::TempList({r}),
+//                                         new temp::TempList({frame::RAX()})));
   return r;
 }
 

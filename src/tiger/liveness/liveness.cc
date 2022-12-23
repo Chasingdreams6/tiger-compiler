@@ -215,20 +215,20 @@ void LiveGraphFactory::InterfGraph() { /* TODO: Put your lab6 code here */
     }
   }
 
-   //output the intergraph
-  auto nodes = live_graph_.interf_graph->Nodes();
-  if (nodes) {
-    for (auto node : nodes->GetList()) {
-      auto succs = node->Adj();
-      printf("--From node:%d--\n", node->NodeInfo()->Int());
-      if (succs) {
-        for (auto succ : succs->GetList()) {
-          if (succ->NodeInfo()->Int() > 115 && node->NodeInfo()->Int() > 115)
-            printf("%d---%d\n", node->NodeInfo()->Int(), succ->NodeInfo()->Int());
-        }
-      }
-    }
-  }
+//   //output the intergraph
+//  auto nodes = live_graph_.interf_graph->Nodes();
+//  if (nodes) {
+//    for (auto node : nodes->GetList()) {
+//      auto succs = node->Adj();
+//      printf("--From node:%d--\n", node->NodeInfo()->Int());
+//      if (succs) {
+//        for (auto succ : succs->GetList()) {
+//          if (succ->NodeInfo()->Int() > 115 && node->NodeInfo()->Int() > 115)
+//            printf("%d---%d\n", node->NodeInfo()->Int(), succ->NodeInfo()->Int());
+//        }
+//      }
+//    }
+//  }
 
 }
 
