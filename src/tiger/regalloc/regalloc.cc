@@ -36,25 +36,29 @@ void RegAllocator::RegAlloc() {
     for (auto instr_it : il->GetList()) {
       if (typeid(*instr_it) == typeid(assem::MoveInstr) &&
           !coloring
-               ->Look(static_cast<assem::MoveInstr *>(instr_it)->dst_->NthTemp(0))
+               ->Look(
+                   static_cast<assem::MoveInstr *>(instr_it)->dst_->NthTemp(0))
                ->compare(*coloring->Look(
-                   static_cast<assem::MoveInstr *>(instr_it)->src_->NthTemp(0)))) {
+                   static_cast<assem::MoveInstr *>(instr_it)->src_->NthTemp(
+                       0)))) {
+        printf("delete Ins:\n");
+        instr_it->Print(stdout, coloring);
         assem_instr_->GetInstrList()->Remove(instr_it);
         flag = false;
         break;
-        //assem_instr_->GetInstrList()->Erase(instr_it);
+        // assem_instr_->GetInstrList()->Erase(instr_it);
       }
     }
   }
   // output Mapping
-  //coloring->DumpMap(stdout);
+   coloring->DumpMap(stdout);
 
   result->coloring_ = coloring;
   result->il_ = assem_instr_->GetInstrList();
 }
 
 std::unique_ptr<ra::Result> RegAllocator::TransferResult() {
-    return std::move(result);
+  return std::move(result);
 }
 // all can used colors
 std::set<temp::Temp *> RegAllocator::getColors() {
@@ -189,7 +193,8 @@ void RegAllocator::makeWorkList() {
 }
 
 live::MoveList *RegAllocator::nodeMoves(temp::Temp *x) {
-  if (!moveList[x]) moveList[x] = new live::MoveList;
+  if (!moveList[x])
+    moveList[x] = new live::MoveList;
   return moveList[x]->Intersect(activeMoves->Union(worklistMoves));
 }
 
@@ -302,7 +307,9 @@ void RegAllocator::combine(temp::Temp *x, temp::Temp *y) {
   }
   coalescedNodes.insert(y);
   alias[y] = x;
-  if (!moveList[x]) {moveList[x] = new live::MoveList;}
+  if (!moveList[x]) {
+    moveList[x] = new live::MoveList;
+  }
   moveList[x]->Union(moveList[y]);
   std::set<temp::Temp *> tmp;
   tmp.insert(y);
@@ -410,7 +417,8 @@ void RegAllocator::assignColors() {
 }
 void RegAllocator::rewrite() {
   std::map<temp::Temp *, int> allocations;
-  if (spilledNodes.empty()) return;
+  if (spilledNodes.empty())
+    return;
   for (auto node : spilledNodes) {
     frame_->AllocLocal(true);
     allocations[node] = frame_->Size();
@@ -424,18 +432,25 @@ void RegAllocator::rewrite() {
     auto def = (*i)->Def();
     auto use = (*i)->Use();
     int cnt = 0;
+    temp::Temp *t = nullptr;
     for (auto def_it = def->GetList().begin(); def_it != def->GetList().end();
          def_it++, cnt++) {
       if (allocations[*def_it]) {
-        temp::Temp *t = temp::TempFactory::NewTemp();
+        if (!t) t = temp::TempFactory::NewTemp();
         char ins[128];
         sprintf(ins, store.c_str(), frame_->getFrameSizeStr().c_str(),
                 allocations[*def_it]);
         assem::OperInstr *instr = new assem::OperInstr(
             ins, nullptr, new temp::TempList({t, frame::RSP()}), nullptr);
-        printf("new: %s\n", ins);
         assem_instr_->GetInstrList()->Insert(++i, instr); // insert after i
-        i--; // restore
+        i--;                                              // restore
+        printf("deflist: ");
+        for (auto t : def->GetList()) {
+          printf("t%d ", t->Int());
+        }
+        printf("\n");
+        printf("change def cnt=%d to=t%d\n", cnt, t->Int());
+        printf("new: %s\n\n", ins);
         def->Change(cnt, t);
       }
     }
@@ -443,7 +458,7 @@ void RegAllocator::rewrite() {
     for (auto use_it = use->GetList().begin(); use_it != use->GetList().end();
          use_it++, cnt++) {
       if (allocations[*use_it]) {
-        temp::Temp *t = temp::TempFactory::NewTemp();
+        if (!t) t = temp::TempFactory::NewTemp();
         char ins[128];
         sprintf(ins, load.c_str(), frame_->getFrameSizeStr().c_str(),
                 allocations[*use_it]);
@@ -451,8 +466,14 @@ void RegAllocator::rewrite() {
             new assem::OperInstr(ins, new temp::TempList({t}),
                                  new temp::TempList({frame::RSP()}), nullptr);
         // assert(prev != std::nullopt_t);
-        printf("new: %s\n", ins);
         assem_instr_->GetInstrList()->Insert(oldi, instr); // insert before i
+        printf("uselist: ");
+        for (auto t : use->GetList()) {
+          printf("t%d ", t->Int());
+        }
+        printf("\n");
+        printf("change use cnt=%d to=t%d\n", cnt, t->Int());
+        printf("new: %s\n\n", ins);
         use->Change(cnt, t);
       }
     }
@@ -466,12 +487,10 @@ RegAllocator::~RegAllocator() {
   delete coalescedMoves;
   delete constrainedMoves;
   delete activeMoves;
-  for(auto it : moveList) {
+  for (auto it : moveList) {
     delete (it.second);
   }
 }
 
-Result::~Result() {
-
-}
+Result::~Result() {}
 } // namespace ra
