@@ -344,7 +344,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   temp::Label *call_label = temp::LabelFactory::NewLabel();
   auto *dataFrag = new frame::DataFrag(call_label, level->frame_);
   tr::AllocFrag(dataFrag);
-  res_exp = new tree::EseqExp(new tree::LabelStm(call_label), res_exp);
+  //res_exp = new tree::EseqExp(new tree::LabelStm(call_label), res_exp);
   //res_exp = new tree::ExpStm(new tree::SeqStm())
   //res_exp = new tree::EseqExp(new tree::ExpStm(new tree::NameExp(call_label)), res_exp);
   return new tr::ExpAndTy(
