@@ -56,12 +56,16 @@ public:
   Level *parent_;
   Level() {}
   Level(Level* parent, frame::Frame *frame1) : parent_(parent), frame_(frame1){}
-  static Level *NewLevel(Level* parent, temp::Label* label, std::list<bool>* formals) {
+  static Level *NewLevel(Level* parent, temp::Label* label, std::list<bool>* formals, std::list<bool>* isPointers) {
     if (!formals) {
       formals = new std::list<bool> { true};
     }
     else formals->push_front(true);
-    return new Level(parent, new frame::X64Frame(label, formals));
+    if (!isPointers) {
+      isPointers = new std::list<bool> { true};
+    }
+    else isPointers->push_front(true);
+    return new Level(parent, new frame::X64Frame(label, formals, isPointers));
   }
 };
 

@@ -3,9 +3,11 @@
 #include <cstdio>
 
 #include "tiger/output/logger.h"
+#include "tiger/frame/frame.h"
 
 extern frame::RegManager *reg_manager;
 extern frame::Frags *frags;
+std::string lastDataLabel;
 
 namespace output {
 void AssemGen::GenAssem(bool need_ra) {
@@ -23,6 +25,18 @@ void AssemGen::GenAssem(bool need_ra) {
   fprintf(out_, ".section .rodata\n");
   for (auto &&frag : frags->GetList())
     frag->OutputAssem(out_, phase, need_ra);
+
+  // GLOBAL ROOT
+  phase = frame::Frag::Data;
+  fprintf(out_, ".data\n");
+  fprintf(out_, ".global GLOBAL_GC_ROOTS\n");
+  fprintf(out_, "GLOBAL_GC_ROOTS:\n");
+  lastDataLabel = "GLOBAL_GC_ROOTS";
+  for (auto &&frag : frags->GetList()) {
+    frag->OutputAssem(out_, phase, need_ra);
+  }
+  fprintf(out_, "EndData:\n");
+  fprintf(out_, (".quad " + lastDataLabel + "\n").c_str());
 }
 
 } // namespace output
@@ -144,4 +158,27 @@ void StringFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   }
   fprintf(out, "\"\n");
 }
+void DataFrag::OutputAssem(FILE *out, Frag::OutputPhase phase,
+                           bool need_ra) const {
+  if (phase != Data)
+    return;
+  // label
+  fprintf(out, "%s:\n", label_->Name().data());
+  // lastPointer
+  fprintf(out, (".quad " + lastDataLabel + "\n").c_str());
+  //size
+  fprintf(out, ".quad %x\n", frame_->Size());
+  int bios = 0;
+  for (auto it : *frame_->Formals()) {
+    if (it->getIsPointer()) {
+      fprintf(out, ".quad %x\n", bios);
+    }
+    bios += 8;
+  }
+  //end
+  fprintf(out, ".quad -1\n");
+
+  lastDataLabel = label_->Name();
+}
+
 } // namespace frame

@@ -69,7 +69,7 @@ public:
                   err::ErrorMsg *errormsg) const;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const;
+                          err::ErrorMsg *errormsg);
   void Traverse(esc::EscEnvPtr env);
 
 private:
@@ -90,7 +90,7 @@ public:
                                err::ErrorMsg *errormsg) const = 0;
   virtual tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
-                                  err::ErrorMsg *errormsg) const = 0;
+                                  err::ErrorMsg *errormsg) = 0;
   virtual void Traverse(esc::EscEnvPtr env, int depth) = 0;
 
 protected:
@@ -108,7 +108,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg)  override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -126,7 +126,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -144,7 +144,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -162,7 +162,7 @@ public:
                                err::ErrorMsg *errormsg) const = 0;
   virtual tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
-                                  err::ErrorMsg *errormsg) const = 0;
+                                  err::ErrorMsg *errormsg) = 0;
   virtual void Traverse(esc::EscEnvPtr env, int depth) = 0;
 
 protected:
@@ -181,7 +181,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -195,7 +195,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -211,7 +211,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -227,7 +227,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -247,7 +247,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -265,7 +265,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -283,7 +283,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -299,7 +299,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -316,7 +316,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -333,7 +333,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -350,7 +350,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -369,7 +369,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -383,7 +383,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -401,7 +401,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -419,7 +419,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -433,7 +433,7 @@ public:
                        err::ErrorMsg *errormsg) const override;
   tr::ExpAndTy *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                           tr::Level *level, temp::Label *label,
-                          err::ErrorMsg *errormsg) const override;
+                          err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -450,7 +450,7 @@ public:
                           err::ErrorMsg *errormsg) const = 0;
   virtual tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                              tr::Level *level, temp::Label *label,
-                             err::ErrorMsg *errormsg) const = 0;
+                             err::ErrorMsg *errormsg) = 0;
   virtual void Traverse(esc::EscEnvPtr env, int depth) = 0;
 
 protected:
@@ -470,7 +470,7 @@ public:
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
                      temp::Label *label, 
-                     err::ErrorMsg *errormsg) const override;
+                     err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -479,10 +479,10 @@ public:
   sym::Symbol *var_;
   sym::Symbol *typ_;
   Exp *init_;
-  bool escape_;
+  bool escape_, isPointer_;
 
   VarDec(int pos, sym::Symbol *var, sym::Symbol *typ, Exp *init)
-      : Dec(pos), var_(var), typ_(typ), init_(init), escape_(true) {}
+      : Dec(pos), var_(var), typ_(typ), init_(init), escape_(true), isPointer_(false){}
   ~VarDec() override;
 
   void Print(FILE *out, int d) const override;
@@ -490,7 +490,7 @@ public:
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
                      temp::Label *label, 
-                     err::ErrorMsg *errormsg) const override;
+                     err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -506,7 +506,7 @@ public:
                   err::ErrorMsg *errormsg) const override;
   tr::Exp *Translate(env::VEnvPtr venv, env::TEnvPtr tenv, tr::Level *level,
                      temp::Label *label, 
-                     err::ErrorMsg *errormsg) const override;
+                     err::ErrorMsg *errormsg) override;
   void Traverse(esc::EscEnvPtr env, int depth) override;
 };
 
@@ -522,7 +522,7 @@ public:
   virtual type::Ty *SemAnalyze(env::TEnvPtr tenv,
                                err::ErrorMsg *errormsg) const = 0;
   virtual type::Ty *Translate(env::TEnvPtr tenv,
-                              err::ErrorMsg *errormsg) const = 0;
+                              err::ErrorMsg *errormsg) = 0;
 
 protected:
   explicit Ty(int pos) : pos_(pos) {}
@@ -539,7 +539,7 @@ public:
   type::Ty *SemAnalyze(env::TEnvPtr tenv,
                        err::ErrorMsg *errormsg) const override;
   type::Ty *Translate(env::TEnvPtr tenv,
-                      err::ErrorMsg *errormsg) const override;
+                      err::ErrorMsg *errormsg) override;
 };
 
 class RecordTy : public Ty {
@@ -553,7 +553,7 @@ public:
   type::Ty *SemAnalyze(env::TEnvPtr tenv,
                        err::ErrorMsg *errormsg) const override;
   type::Ty *Translate(env::TEnvPtr tenv,
-                      err::ErrorMsg *errormsg) const override;
+                      err::ErrorMsg *errormsg)  override;
 };
 
 class ArrayTy : public Ty {
@@ -567,7 +567,7 @@ public:
   type::Ty *SemAnalyze(env::TEnvPtr tenv,
                        err::ErrorMsg *errormsg) const override;
   type::Ty *Translate(env::TEnvPtr tenv,
-                      err::ErrorMsg *errormsg) const override;
+                      err::ErrorMsg *errormsg)  override;
 };
 
 /**
@@ -578,10 +578,10 @@ class Field {
 public:
   int pos_;
   sym::Symbol *name_, *typ_;
-  bool escape_;
+  bool escape_, isPointer;
 
   Field(int pos, sym::Symbol *name, sym::Symbol *typ)
-      : pos_(pos), name_(name), typ_(typ), escape_(true) {}
+      : pos_(pos), name_(name), typ_(typ), escape_(true), isPointer(false){}
 
   void Print(FILE *out, int d) const;
 };

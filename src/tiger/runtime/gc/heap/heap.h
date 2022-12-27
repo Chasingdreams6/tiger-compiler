@@ -5,7 +5,10 @@
 
 // Used to locate the start of ptrmap, simply get the address by &GLOBAL_GC_ROOTS
 extern uint64_t GLOBAL_GC_ROOTS;
+extern uint64_t EndData;
 
+#define GET_END(rp) do {rp = &EndData;} while(0)
+#define GET_ROOT(rp) do {rp = &GLOBAL_GC_ROOTS;} while(0)
 #define GET_RBP(rbp) do { __asm__("movq %%rbp, %0" : "=r"(rbp)); } while(0)
 
 // Used to get the first tiger stack, define a sp like uint64_t *sp; and invoke GET_TIGER_STACK(sp) will work

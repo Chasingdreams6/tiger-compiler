@@ -90,9 +90,14 @@ protected:
 };
 
 class Access {
+private:
+  bool isPointer_;
 public:
   /* TODO: Put your lab5 code here */
+  bool getIsPointer() const {return isPointer_;}
+  void setIsPointer(bool isPointer) {isPointer_ = isPointer;}
   virtual ~Access() = default;
+  Access(bool isPointer) : isPointer_(isPointer) {}
   virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
 };
 
@@ -116,7 +121,7 @@ public:
   temp::TempList *returnSink;
   int usedRegs = 0;
 
-  virtual Access* AllocLocal(bool escape) = 0;
+  virtual Access* AllocLocal(bool escape, bool isPointer) = 0;
   virtual std::list<frame::Access*>* Formals() const = 0;
   virtual int Size() = 0;
   virtual int MaxArgs() = 0;
@@ -139,6 +144,7 @@ public:
   enum OutputPhase {
     Proc,
     String,
+    Data
   };
 
   /**
@@ -166,6 +172,14 @@ public:
 
   ProcFrag(tree::Stm *body, Frame *frame) : body_(body), frame_(frame) {}
 
+  void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const override;
+};
+
+class DataFrag : public Frag {
+public:
+  temp::Label *label_;
+  Frame *frame_;
+  DataFrag(temp::Label *label, Frame *frame) : label_(label), frame_(frame) {}
   void OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const override;
 };
 

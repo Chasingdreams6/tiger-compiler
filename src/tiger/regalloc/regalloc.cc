@@ -420,7 +420,7 @@ void RegAllocator::rewrite() {
   if (spilledNodes.empty())
     return;
   for (auto node : spilledNodes) {
-    frame_->AllocLocal(true);
+    frame_->AllocLocal(true, false);  // TODO
     allocations[node] = frame_->Size();
     printf("spill t%d, on stack %d\n", node->Int(), frame_->Size());
   }

@@ -22,8 +22,8 @@ public:
 
   Access(Level *level, frame::Access *access)
       : level_(level), access_(access) {}
-  static Access *AllocLocal(Level *level, bool escape) {
-    frame::Access *access = level->frame_->AllocLocal(escape);
+  static Access *AllocLocal(Level *level, bool escape, bool isPointer) {
+    frame::Access *access = level->frame_->AllocLocal(escape, isPointer);
     return new Access(level, access);
   }
 };
@@ -32,7 +32,7 @@ Level *OutMost() { // father
   static Level *level = nullptr;
   if (level)
     return level;
-  level = Level::NewLevel(nullptr, temp::LabelFactory::NewLabel(), nullptr);
+  level = Level::NewLevel(nullptr, temp::LabelFactory::NewLabel(), nullptr, nullptr);
   return level;
 }
 
@@ -138,7 +138,7 @@ public:
 void ProgTr::Translate() {
   temp::Label *main_label = temp::LabelFactory::NamedLabel("tigermain");
   // errormsg_->Error(255, "Before reset main_level");
-  main_level_.reset(Level::NewLevel(OutMost(), main_label, nullptr));
+  main_level_.reset(Level::NewLevel(OutMost(), main_label, nullptr, nullptr));
   FillBaseTEnv();
   FillBaseVEnv();
   auto stm = absyn_tree_
@@ -157,13 +157,13 @@ namespace absyn {
 
 tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {
+                                   err::ErrorMsg *errormsg)  {
   return root_->Translate(venv, tenv, level, label, errormsg);
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {
+                                   err::ErrorMsg *errormsg)  {
   auto *res = new tr::ExpAndTy();
   env::EnvEntry *entry = venv->Look(sym_);
   if (entry && typeid(*entry) == typeid(env::VarEntry)) {
@@ -185,7 +185,7 @@ tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
-                                  err::ErrorMsg *errormsg) const {
+                                  err::ErrorMsg *errormsg)  {
   tr::ExpAndTy *var_res = var_->Translate(venv, tenv, level, label, errormsg);
   if (typeid(*(var_res->ty_)) != typeid(type::RecordTy)) {
     errormsg->Error(pos_, "not a record type");
@@ -212,7 +212,7 @@ tr::ExpAndTy *FieldVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                       tr::Level *level, temp::Label *label,
-                                      err::ErrorMsg *errormsg) const {
+                                      err::ErrorMsg *errormsg)  {
   tr::ExpAndTy *sub_res =
       subscript_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *var_res = var_->Translate(venv, tenv, level, label, errormsg);
@@ -239,27 +239,27 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *VarExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
-                                err::ErrorMsg *errormsg) const {
+                                err::ErrorMsg *errormsg)  {
   return var_->Translate(venv, tenv, level, label, errormsg);
 }
 
 tr::ExpAndTy *NilExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
-                                err::ErrorMsg *errormsg) const {
+                                err::ErrorMsg *errormsg)  {
   return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
                           type::NilTy::Instance());
 }
 
 tr::ExpAndTy *IntExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
-                                err::ErrorMsg *errormsg) const {
+                                err::ErrorMsg *errormsg)  {
   return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(val_)),
                           type::IntTy::Instance());
 }
 
 tr::ExpAndTy *StringExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {
+                                   err::ErrorMsg *errormsg)  {
   temp::Label *string_label = temp::LabelFactory::NewLabel();
   frame::StringFrag *string_frag = new frame::StringFrag(string_label, str_);
   tr::AllocFrag(string_frag);
@@ -269,7 +269,7 @@ tr::ExpAndTy *StringExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                  tr::Level *level, temp::Label *label,
-                                 err::ErrorMsg *errormsg) const {
+                                 err::ErrorMsg *errormsg) {
   env::EnvEntry *entry = venv->Look(func_);
   if (DEBUG_TRANSLATE) {
     std::string output =
@@ -339,6 +339,14 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   //      typeid(dynamic_cast<env::FunEntry
   //      *>(entry)->result_->ActualTy()).name());
   tree::Exp *res_exp = new tree::CallExp(new tree::NameExp(func_), arg_exps);
+
+  // add Label
+  temp::Label *call_label = temp::LabelFactory::NewLabel();
+  auto *dataFrag = new frame::DataFrag(call_label, level->frame_);
+  tr::AllocFrag(dataFrag);
+  res_exp = new tree::EseqExp(new tree::LabelStm(call_label), res_exp);
+  //res_exp = new tree::ExpStm(new tree::SeqStm())
+  //res_exp = new tree::EseqExp(new tree::ExpStm(new tree::NameExp(call_label)), res_exp);
   return new tr::ExpAndTy(
       new tr::ExExp(res_exp),
       dynamic_cast<env::FunEntry *>(entry)->result_->ActualTy());
@@ -346,7 +354,7 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                tr::Level *level, temp::Label *label,
-                               err::ErrorMsg *errormsg) const {
+                               err::ErrorMsg *errormsg)  {
   tree::CjumpStm *stm = nullptr, *stm2 = nullptr;
   tree::Stm *res = nullptr;
   tr::PatchList *trues = nullptr, *falses = nullptr;
@@ -374,20 +382,6 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
           new tree::ExpList({left_exp, right_exp}));
       right_exp = new tree::ConstExp(1);
     }
-  //  if (typeid(*left_res->ty_) != typeid(type::IntTy) &&
-  //      (!left_res->ty_->IsSameType(type::NilTy::Instance()))) {
-  //    errormsg->Error(left_->pos_, "integer required");
-  //    abort();
-  //    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
-  //                            type::IntTy::Instance());
-  //  }
-  //  if ((typeid(*right_res->ty_) != typeid(type::IntTy)) &&
-  //      (!right_res->ty_->IsSameType(type::NilTy::Instance()))) {
-  //    errormsg->Error(right_->pos_, "integer required");
-  //    abort();
-  //    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
-  //                            type::IntTy::Instance());
-  //  }
   switch (oper_) {
   case absyn::Oper::AND_OP:
     z = temp::LabelFactory::NewLabel();
@@ -485,7 +479,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {
+                                   err::ErrorMsg *errormsg) {
   type::Ty *ty = tenv->Look(typ_);
   if (ty)
     ty = ty->ActualTy();
@@ -548,7 +542,7 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
-                                err::ErrorMsg *errormsg) const {
+                                err::ErrorMsg *errormsg)  {
   tree::SeqStm *seqStm = nullptr, *seqLast = nullptr;
   for (auto i = seq_->GetList().begin(), j = --seq_->GetList().end(); i != j;
        ++i) {
@@ -575,7 +569,7 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
-                                   err::ErrorMsg *errormsg) const {
+                                   err::ErrorMsg *errormsg)  {
   tr::ExpAndTy *var_res = var_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *exp_res = exp_->Translate(venv, tenv, level, label, errormsg);
   type::Ty *res_ty = type::VoidTy::Instance();
@@ -596,7 +590,7 @@ tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                tr::Level *level, temp::Label *label,
-                               err::ErrorMsg *errormsg) const {
+                               err::ErrorMsg *errormsg) {
   tr::ExpAndTy *if_res = test_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *then_res = then_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *else_res = nullptr;
@@ -661,7 +655,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
-                                  err::ErrorMsg *errormsg) const {
+                                  err::ErrorMsg *errormsg)  {
   temp::Label *test_label = temp::LabelFactory::NewLabel();
   temp::Label *body_label = temp::LabelFactory::NewLabel();
   temp::Label *done_label = temp::LabelFactory::NewLabel();
@@ -690,7 +684,7 @@ tr::ExpAndTy *WhileExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
-                                err::ErrorMsg *errormsg) const {
+                                err::ErrorMsg *errormsg) {
   venv->BeginScope();
   temp::Label *body_label = temp::LabelFactory::NewLabel();
   temp::Label *test_label = temp::LabelFactory::NewLabel();
@@ -706,7 +700,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     errormsg->Error(hi_->pos_, "for exp's range type is not integer");
     abort();
   }
-  tr::Access *access = tr::Access::AllocLocal(level, escape_);
+  tr::Access *access = tr::Access::AllocLocal(level, escape_, false);
   venv->Enter(var_, new env::VarEntry(access, lo_res->ty_, true));
   tr::ExpAndTy *body_res =
       body_->Translate(venv, tenv, level, done_label, errormsg);
@@ -739,7 +733,7 @@ tr::ExpAndTy *ForExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *BreakExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
-                                  err::ErrorMsg *errormsg) const {
+                                  err::ErrorMsg *errormsg)  {
   return new tr::ExpAndTy(
       new tr::NxExp(new tree::JumpStm(new tree::NameExp(label),
                                       new std::vector<temp::Label *>{label})),
@@ -748,7 +742,7 @@ tr::ExpAndTy *BreakExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
-                                err::ErrorMsg *errormsg) const {
+                                err::ErrorMsg *errormsg)  {
 
   if (DEBUG_TRANSLATE) {
     errormsg->Error(pos_, "Start translate Let");
@@ -782,7 +776,7 @@ tr::ExpAndTy *LetExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                   tr::Level *level, temp::Label *label,
-                                  err::ErrorMsg *errormsg) const {
+                                  err::ErrorMsg *errormsg)  {
   type::Ty *res_ty = tenv->Look(typ_)->ActualTy();
   tr::ExpAndTy *size_res = size_->Translate(venv, tenv, level, label, errormsg);
   tr::ExpAndTy *init_res = init_->Translate(venv, tenv, level, label, errormsg);
@@ -807,14 +801,14 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::ExpAndTy *VoidExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                  tr::Level *level, temp::Label *label,
-                                 err::ErrorMsg *errormsg) const {
+                                 err::ErrorMsg *errormsg) {
   return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),
                           type::VoidTy::Instance());
 }
 
 tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                 tr::Level *level, temp::Label *label,
-                                err::ErrorMsg *errormsg) const {
+                                err::ErrorMsg *errormsg)  {
   if (DEBUG_TRANSLATE) {
     errormsg->Error(pos_, "Start translate funcDec");
   }
@@ -830,13 +824,15 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     type::TyList *formals = function->params_->MakeFormalTyList(tenv, errormsg);
     // getEscapes
     auto *escapes = new std::list<bool>;
+    auto *isPointers = new std::list<bool>;
     for (auto formal_it : function->params_->GetList()) {
       escapes->push_back(formal_it->escape_);
+      isPointers->push_back(formal_it->isPointer);
     }
     auto *new_entry = new env::FunEntry(
         tr::Level::NewLevel(
             level, temp::LabelFactory::NamedLabel(function->name_->Name()),
-            escapes),
+            escapes, isPointers),
         function->name_, formals, ret_ty);
     if (DEBUG_TRANSLATE) {
       std::string flag =
@@ -886,7 +882,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                            tr::Level *level, temp::Label *label,
-                           err::ErrorMsg *errormsg) const {
+                           err::ErrorMsg *errormsg) {
   tr::ExpAndTy *init_res = init_->Translate(venv, tenv, level, label, errormsg);
   if (typ_) { // long form
     type::Ty *type = tenv->Look(typ_)->ActualTy();
@@ -902,7 +898,13 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       return new tr::ExExp(new tree::ConstExp(0));
     }
   }
-  tr::Access *acc = tr::Access::AllocLocal(level, escape_);
+  //printf("%s\n", typeid(*init_res->ty_->ActualTy()).name());
+  if (typeid(*init_res->ty_->ActualTy()) == typeid(type::RecordTy) || typeid(*init_res->ty_->ActualTy()) == typeid(type::ArrayTy)) {
+    std::string str = "var " + var_->Name() + " is pointer";
+    //printf("var %s is pointer\n", var_->Name().data());
+    isPointer_ = true;
+  }
+  tr::Access *acc = tr::Access::AllocLocal(level, escape_, isPointer_);
   venv->Enter(var_, new env::VarEntry(acc, init_res->ty_, false));
   return new tr::NxExp(
       new tree::MoveStm(acc->access_->ToExp(new tree::TempExp(frame::FP())),
@@ -911,7 +913,7 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
 
 tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                             tr::Level *level, temp::Label *label,
-                            err::ErrorMsg *errormsg) const {
+                            err::ErrorMsg *errormsg) {
   for (absyn::NameAndTy *type : types_->GetList()) {
     if (tenv->Look(type->name_)) {
       errormsg->Error(pos_, "two types have the same name");
@@ -939,7 +941,7 @@ tr::Exp *TypeDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   return new tr::ExExp(new tree::ConstExp(0));
 }
 
-type::Ty *NameTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
+type::Ty *NameTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) {
   type::Ty *ty = tenv->Look(name_);
   if (!ty) {
     errormsg->Error(pos_, "No such type");
@@ -950,11 +952,11 @@ type::Ty *NameTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
 }
 
 type::Ty *RecordTy::Translate(env::TEnvPtr tenv,
-                              err::ErrorMsg *errormsg) const {
+                              err::ErrorMsg *errormsg) {
   return new type::RecordTy(record_->MakeFieldList(tenv, errormsg));
 }
 
-type::Ty *ArrayTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) const {
+type::Ty *ArrayTy::Translate(env::TEnvPtr tenv, err::ErrorMsg *errormsg) {
   return new type::ArrayTy(tenv->Look(array_));
 }
 

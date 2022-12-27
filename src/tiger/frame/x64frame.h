@@ -42,8 +42,8 @@ public:
 class X64Frame : public Frame {
 public:
   void ViewShift(tree::Stm *stm);
-  X64Frame(temp::Label *name, std::list<bool> *formals);
-  Access *AllocLocal(bool escape) override;
+  X64Frame(temp::Label *name, std::list<bool> *formals, std::list<bool> *isPointers);
+  Access *AllocLocal(bool escape, bool isPointer) override;
   int Size() override {return size_;}
   int MaxArgs() override {return maxArgs;}
   std::string getFrameSizeStr() override {

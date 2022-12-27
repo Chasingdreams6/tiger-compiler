@@ -11,7 +11,7 @@ class InFrameAccess : public Access {
 public:
   int offset; // negative
 
-  explicit InFrameAccess(int offset) : offset(offset) {}
+  explicit InFrameAccess(int offset, bool isPointer) : offset(offset), Access(isPointer){}
   tree::Exp *ToExp(tree::Exp *framePtr) const override { // 假设有fp的寄存器
     return new tree::MemExp(new tree::BinopExp(
         tree::PLUS_OP, new tree::ConstExp(offset), framePtr));
@@ -21,7 +21,7 @@ public:
 class InRegAccess : public Access {
 public:
   temp::Temp *reg;
-  explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
+  explicit InRegAccess(temp::Temp *reg, bool isPointer) : reg(reg), Access(isPointer){}
   tree::Exp *ToExp(tree::Exp *framePtr) const override {
     return new tree::TempExp(reg);
   }
@@ -29,17 +29,17 @@ public:
 
 /* TODO: Put your lab5 code here */
 
-Access *X64Frame::AllocLocal(bool escape) {
-  if (escape) {
+Access *X64Frame::AllocLocal(bool escape, bool isPointer) {
+  if (escape || isPointer) { // put all pointer to the stack
     size_ += reg_manager->WordSize();
-    return new InFrameAccess(-size_);
+    return new InFrameAccess(-size_, isPointer);
   } else {
     if (usedRegs < calleeRegs->GetList().size()) {
-      Access *access = new InRegAccess(calleeRegs->NthTemp(usedRegs));
+      Access *access = new InRegAccess(calleeRegs->NthTemp(usedRegs), false);
       usedRegs++;
       return access;
     }
-    return new InRegAccess(temp::TempFactory::NewTemp());
+    return new InRegAccess(temp::TempFactory::NewTemp(), false);
   }
 }
 void X64Frame::ViewShift(tree::Stm *stm) {
@@ -53,7 +53,7 @@ void X64Frame::ViewShift(tree::Stm *stm) {
     last_stm = static_cast<tree::SeqStm *>(last_stm->right_);
   last_stm->right_ = new tree::SeqStm(stm, nullptr);
 }
-X64Frame::X64Frame(temp::Label *name, std::list<bool> *formals) {
+X64Frame::X64Frame(temp::Label *name, std::list<bool> *formals, std::list<bool> *isPointers) {
   name_ = name;
   formals_ = new std::list<frame::Access *>;
   viewShift = nullptr;
@@ -62,9 +62,10 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> *formals) {
       {frame::R12(), frame::R13(), frame::R14(), frame::R15()});
   returnSink = nullptr;
   int pos = 0;
+  auto it_pointer = (*isPointers).begin();
   if (formals != nullptr)
     for (auto formal : *formals) {
-      Access *acc = AllocLocal(formal);
+      Access *acc = AllocLocal(formal, (*it_pointer));
       formals_->push_back(acc);
       switch (pos) {
       case 0: {
@@ -108,6 +109,7 @@ X64Frame::X64Frame(temp::Label *name, std::list<bool> *formals) {
       }
       }
       pos++;
+      it_pointer++;
     }
 }
 tree::Stm *X64Frame::ProcEntryExit1(tree::Stm *stm) {

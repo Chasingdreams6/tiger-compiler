@@ -8,9 +8,12 @@ namespace gc {
 
   char* DerivedHeap::Allocate(uint64_t size) {
     uint64_t *sp;
+    uint64_t *ptrmap;
     GET_TIGER_STACK(sp);
-    printf("Used: %ld, Allocate: %ld\n", used_size, size);
-    printf("RSP: %x, value: %x\n", sp, *sp);
+    GET_ROOT(ptrmap);
+    //printf("Used: %ld, Allocate: %ld\n", used_size, size);
+    //printf("RSP: %x, value: %x\n", sp, *sp);
+    //printf("PTRMAP: %x, value: %x, nv :%x\n", ptrmap, *(ptrmap), *(ptrmap + 3));
     char *p = (char *)malloc(size);
     used_size += size;
     return p;
