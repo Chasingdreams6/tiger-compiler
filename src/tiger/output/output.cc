@@ -35,6 +35,7 @@ void AssemGen::GenAssem(bool need_ra) {
   for (auto &&frag : frags->GetList()) {
     frag->OutputAssem(out_, phase, need_ra);
   }
+  fprintf(out_, ".global EndData\n");
   fprintf(out_, "EndData:\n");
   fprintf(out_, (".quad " + lastDataLabel + "\n").c_str());
 }
@@ -163,22 +164,23 @@ void DataFrag::OutputAssem(FILE *out, Frag::OutputPhase phase,
   if (phase != Data)
     return;
   // label
-  fprintf(out, "%s:\n", label_->Name().data());
+  fprintf(out, "L_map_%s:\n", label_->Name().data());
   // lastPointer
   fprintf(out, (".quad " + lastDataLabel + "\n").c_str());
   //size
-  fprintf(out, ".quad %x\n", frame_->Size());
-  int bios = 0;
+  fprintf(out, ".quad 0x%x\n", frame_->Size());
+  fprintf(out, ".quad %s\n", label_->Name().c_str());
+  int size = frame_->Size();
   for (auto it : *frame_->Formals()) {
     if (it->getIsPointer()) {
-      fprintf(out, ".quad %x\n", bios);
+      auto frame_access = (frame::InFrameAccess*)it;
+      fprintf(out, ".quad 0x%x\n", frame_access->offset + size);
     }
-    bios += 8;
   }
   //end
   fprintf(out, ".quad -1\n");
 
-  lastDataLabel = label_->Name();
+  lastDataLabel = "L_map_" + label_->Name();
 }
 
 } // namespace frame

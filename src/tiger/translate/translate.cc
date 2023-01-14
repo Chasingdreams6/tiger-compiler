@@ -1,6 +1,6 @@
 #include "tiger/translate/translate.h"
-
 #include <tiger/absyn/absyn.h>
+#include <map>
 
 #include "tiger/env/env.h"
 #include "tiger/errormsg/errormsg.h"
@@ -10,7 +10,7 @@
 
 extern frame::Frags *frags;
 extern frame::RegManager *reg_manager;
-
+std::map<tree::CallExp*, temp::Label*> call_site_mapper;
 #define DEBUG_TRANSLATE 0
 
 namespace tr {
@@ -226,7 +226,6 @@ tr::ExpAndTy *SubscriptVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     errormsg->Error(subscript_->pos_, "exp should be an integer");
     abort();
   }
-  // printf("type is %s\n", typeid(var_res->ty_->ActualTy()).name());
 
   return new tr::ExpAndTy(
       new tr::ExExp(new tree::MemExp(new tree::BinopExp(
@@ -334,18 +333,17 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   // this is important for spill
   caller_level->frame_->maxArgs = std::max(caller_level->frame_->maxArgs, (int)arg_exps->GetList().size());
-  //  printf(
-  //      "End translation function %s, retty=%s\n", func_->Name().c_str(),
-  //      typeid(dynamic_cast<env::FunEntry
-  //      *>(entry)->result_->ActualTy()).name());
   tree::Exp *res_exp = new tree::CallExp(new tree::NameExp(func_), arg_exps);
 
   // add Label
   temp::Label *call_label = temp::LabelFactory::NewLabel();
   auto *dataFrag = new frame::DataFrag(call_label, level->frame_);
   tr::AllocFrag(dataFrag);
+  //printf("trans call %s\n", func_->Name().data());
+  call_site_mapper[(tree::CallExp*)res_exp] = call_label;
   //res_exp = new tree::EseqExp(new tree::LabelStm(call_label), res_exp);
   //res_exp = new tree::ExpStm(new tree::SeqStm())
+  //res_exp = new tree::EseqExp()
   //res_exp = new tree::EseqExp(new tree::ExpStm(new tree::NameExp(call_label)), res_exp);
   return new tr::ExpAndTy(
       new tr::ExExp(res_exp),
@@ -789,11 +787,17 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto *runtime_args =
       new tree::ExpList({size_res->exp_->UnEx(), init_res->exp_->UnEx()});
   temp::Temp *arr = temp::TempFactory::NewTemp();
+  tree::Exp *call_exp = new tree::CallExp(
+      new tree::NameExp(temp::LabelFactory::NamedLabel("init_array")),
+      runtime_args);
+  temp::Label *call_label = temp::LabelFactory::NewLabel();
+  call_site_mapper[(tree::CallExp*)call_exp] = call_label;
+  auto *dataFrag = new frame::DataFrag(call_label, level->frame_);
+  tr::AllocFrag(dataFrag);
   tree::Stm *alloc_stm = new tree::MoveStm(
       new tree::TempExp(arr),
-      new tree::CallExp(
-          new tree::NameExp(temp::LabelFactory::NamedLabel("init_array")),
-          runtime_args));
+      call_exp
+      );
   return new tr::ExpAndTy(
       new tr::ExExp(new tree::EseqExp(alloc_stm, new tree::TempExp(arr))),
       res_ty);

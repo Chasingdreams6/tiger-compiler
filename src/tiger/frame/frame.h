@@ -97,7 +97,7 @@ public:
   bool getIsPointer() const {return isPointer_;}
   void setIsPointer(bool isPointer) {isPointer_ = isPointer;}
   virtual ~Access() = default;
-  Access(bool isPointer) : isPointer_(isPointer) {}
+  Access(bool isPointer) : isPointer_(isPointer){}
   virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
 };
 

@@ -234,7 +234,6 @@ void RegAllocator::enableMoves(std::set<temp::Temp *> nodes) {
   for (auto node : nodes) {
     auto nodemoves = nodeMoves(node);
     for (auto nodemove : nodemoves->GetList()) {
-      // TODO the meaning of find
       if (activeMoves->Contain(nodemove.first, nodemove.second)) {
         worklistMoves->Append(nodemove.first, nodemove.second);
         activeMoves->Delete(nodemove.first, nodemove.second);

@@ -179,7 +179,7 @@ void LiveGraphFactory::InterfGraph() { /* TODO: Put your lab6 code here */
   for (auto nl : nodelist->GetList()) {
     auto def = nl->NodeInfo()->Def();
     int defi = 0;
-    if (typeid(*(nl->NodeInfo())) == typeid(assem::MoveInstr)) {
+    if (typeid(*(nl->NodeInfo())) == typeid(assem::MoveInstr)) { // build move edge, prepare to coleasce
       auto use = nl->NodeInfo()->Use();
       int usei = 0;
       auto outs = out_->Look(nl);

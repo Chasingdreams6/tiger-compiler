@@ -1,11 +1,12 @@
 #include "tiger/codegen/codegen.h"
 
 #include <cassert>
+#include <map>
 #include <memory>
 #include <sstream>
 
 extern frame::RegManager *reg_manager;
-
+extern std::map<tree::Exp *, temp::Label *> call_site_mapper;
 namespace {
 
 constexpr int maxlen = 1024;
@@ -76,9 +77,10 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
                            new temp::TempList({left_->Munch(instr_list, fs),
                                                right_->Munch(instr_list, fs)}),
                            new assem::Targets(nullptr)));
-  instr_list.Append(new assem::OperInstr(
-      ins, nullptr, nullptr,
-      new assem::Targets(new std::vector<temp::Label *>{true_label_, false_label_})));
+  instr_list.Append(
+      new assem::OperInstr(ins, nullptr, nullptr,
+                           new assem::Targets(new std::vector<temp::Label *>{
+                               true_label_, false_label_})));
 }
 
 void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
@@ -211,15 +213,15 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
                                            new temp::TempList({frame::RAX()})));
     return r;
   }
-  instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
-                                         new temp::TempList({r}),
-                                         new temp::TempList({lv})));
+  instr_list.Append(new assem::MoveInstr(
+      "movq `s0, `d0", new temp::TempList({r}), new temp::TempList({lv})));
   instr_list.Append(new assem::OperInstr(ins + " `s0, `d0",
                                          new temp::TempList({r}),
                                          new temp::TempList({rv, r}), nullptr));
-//  instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
-//                                         new temp::TempList({r}),
-//                                         new temp::TempList({frame::RAX()})));
+  //  instr_list.Append(new assem::MoveInstr("movq `s0, `d0",
+  //                                         new temp::TempList({r}),
+  //                                         new
+  //                                         temp::TempList({frame::RAX()})));
   return r;
 }
 
@@ -247,7 +249,8 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       temp::Temp *lv = e1->left_->Munch(instr_list, fs);
       instr_list.Append(new assem::OperInstr(
           "addq `s0, `d0", new temp::TempList({lv}),
-          new temp::TempList({e1->right_->Munch(instr_list, fs), lv}), nullptr));
+          new temp::TempList({e1->right_->Munch(instr_list, fs), lv}),
+          nullptr));
       instr_list.Append(
           new assem::OperInstr("movq (`s0), `d0", new temp::TempList({r}),
                                new temp::TempList({lv}), nullptr));
@@ -275,8 +278,9 @@ temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   if (temp_ == frame::FP()) { // use rsp to trans fp
     temp::Temp *r = temp::TempFactory::NewTemp();
     std::string ins = "leaq " + std::string(fs) + "(%rsp), `d0";
-    instr_list.Append(
-        new assem::OperInstr(ins, new temp::TempList({r}), new temp::TempList{frame::RSP()}, nullptr));
+    instr_list.Append(new assem::OperInstr(ins, new temp::TempList({r}),
+                                           new temp::TempList{frame::RSP()},
+                                           nullptr));
     return r;
   }
   return temp_;
@@ -309,10 +313,15 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::TempList *args = args_->MunchArgs(instr_list, fs);
   instr_list.Append(new assem::OperInstr(
       "callq " + name->name_->Name(),
-      new temp::TempList(
-          {frame::RAX(), frame::R10(), frame::R11(), frame::RDI(),
-           frame::RSI(), frame::RCX(), frame::RDX(), frame::R8(), frame::R9()}),
+      new temp::TempList({frame::RAX(), frame::R10(), frame::R11(),
+                          frame::RDI(), frame::RSI(), frame::RCX(),
+                          frame::RDX(), frame::R8(), frame::R9()}),
       args, nullptr));
+  if (call_site_mapper[this]) {
+    temp::Label *call_label = call_site_mapper[this];
+    instr_list.Append(new assem::LabelInstr(
+        temp::LabelFactory::LabelString(call_label), call_label));
+  }
   return r;
 }
 

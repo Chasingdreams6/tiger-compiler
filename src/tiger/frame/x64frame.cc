@@ -7,25 +7,6 @@ extern frame::RegManager *reg_manager;
 
 namespace frame {
 
-class InFrameAccess : public Access {
-public:
-  int offset; // negative
-
-  explicit InFrameAccess(int offset, bool isPointer) : offset(offset), Access(isPointer){}
-  tree::Exp *ToExp(tree::Exp *framePtr) const override { // 假设有fp的寄存器
-    return new tree::MemExp(new tree::BinopExp(
-        tree::PLUS_OP, new tree::ConstExp(offset), framePtr));
-  }
-};
-
-class InRegAccess : public Access {
-public:
-  temp::Temp *reg;
-  explicit InRegAccess(temp::Temp *reg, bool isPointer) : reg(reg), Access(isPointer){}
-  tree::Exp *ToExp(tree::Exp *framePtr) const override {
-    return new tree::TempExp(reg);
-  }
-};
 
 /* TODO: Put your lab5 code here */
 

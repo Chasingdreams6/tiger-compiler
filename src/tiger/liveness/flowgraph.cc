@@ -34,6 +34,7 @@ void FlowGraphFactory::AssemFlowGraph() {
       to = flowgraph_->NewNode(next);
     }
 
+    // add edges to
     if (typeid(*cur) == typeid(assem::OperInstr)) {
       auto opi = static_cast<assem::OperInstr *>(cur);
       if (opi->jumps_ && opi->jumps_->labels_) {
