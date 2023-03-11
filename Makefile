@@ -15,7 +15,7 @@ docker-run-backend:
 		-v $(shell pwd):/home/stu/tiger-compiler ipadsse302/tigerlabs_env:latest
 
 transform:
-	find . \( -name "*.cc" -o -name "*.tig" -o -name "*.h" -o -name "*.sh" -o -name "ref-0.txt" -o -name "ref-1.txt" -o -name "CMakeLists.txt" \) | xargs -I % sh -c 'dos2unix -n % /tmp/tmp; mv -f /tmp/tmp %;'
+	find . \( -name "*.y" -o -name "*.lex" -o -name "*.cc" -o -name "*.tig" -o -name "*.h" -o -name "*.sh" -o -name "ref-0.txt" -o -name "ref-1.txt" -o -name "CMakeLists.txt" -o -name "*.in" \) | xargs -I % sh -c 'dos2unix -n % /tmp/tmp; mv -f /tmp/tmp %;' && find . \( -name "*.out" -o -name "*.lex" -o -name "*.cc" -o -name "*.tig" -o -name "*.h" -o -name "*.sh" -o -name "ref-0.txt" -o -name "ref-1.txt" -o -name "CMakeLists.txt" -o -name "*.in" \) | xargs -I % sh -c 'dos2unix  %;'
 
 build:transform
 	mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && make
@@ -34,6 +34,9 @@ gradelab3:transform
 
 gradelab4:transform
 	bash scripts/grade.sh lab4
+
+gradelab5-1:transform
+	bash scripts/grade.sh lab5-part1
 
 gradelab5:transform
 	bash scripts/grade.sh lab5
